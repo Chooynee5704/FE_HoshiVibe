@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+@import url('https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css');
+
+@theme {
+  --color-hoshi-primary: #D4B5A0;
+  --color-hoshi-secondary: #F5F5F5;
+  --color-hoshi-accent: #8FBC8F;
+  --color-hoshi-dark: #2C3E50;
+  
+  --font-family-vietnamese: Inter, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.6;
+  color: #374151;
+  background-color: white;
+}
+
+.nav-item {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  color: var(--color-hoshi-dark);
+}
+
+.product-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  transition: box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.product-card:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.btn-primary {
+  background-color: var(--color-hoshi-accent);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.hero-section {
+  padding: 5rem 0;
+}
+
+@media (min-width: 768px) {
+  .md\:flex {
+    display: flex !important;
+  }
+}
+
+/* Custom Swiper Styles */
+.swiper-pagination-bullet {
+  background-color: var(--color-hoshi-primary) !important;
+  opacity: 0.3 !important;
+}
+
+.swiper-pagination-bullet-active {
+  background-color: var(--color-hoshi-accent) !important;
+  opacity: 1 !important;
+  transform: scale(1.2) !important;
+}
+
+.swiper-slide {
+  transition: transform 0.3s ease !important;
+}
+
+.swiper-slide-active {
+  transform: scale(1.05) !important;
+}
