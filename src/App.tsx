@@ -1,17 +1,15 @@
 ﻿import { useState, useEffect } from 'react'
-import { Header, HeroSection, ProductCategories, ChatWidget, Footer, About, Products } from './components'
+import { Header, HeroSection, ProductCategories, ChatWidget, Footer, About, Products, Login, Register, Membership, Search, ProductDetail, Cart } from './components'
 import CustomDesign from './components/CustomDesign'
 import type { PageKey } from './types/navigation'
+import FengShuiConsultation from './components/FengShuiConsultation'
 
-const ComingSoon = ({ title, description }: { title: string; description: string }) => (
-  <div style={{ padding: '4rem 2rem', textAlign: 'center', minHeight: '60vh', backgroundColor: '#fff' }}>
-    <h1 style={{ fontSize: '2rem', color: '#111827', marginBottom: '1rem' }}>{title}</h1>
-    <p style={{ color: '#6b7280', fontSize: '1.125rem' }}>{description}</p>
-  </div>
-)
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageKey>('home')
+  const [isPageTransitioning, setIsPageTransitioning] = useState(false)
+  const [cartCount, setCartCount] = useState(0)
+  const [cartItems, setCartItems] = useState<{ id:number; name:string; price:number; image:string; quantity:number }[]>([])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -24,6 +22,14 @@ function App() {
         setCurrentPage('membership')
       } else if (path === 'about') {
         setCurrentPage('about')
+      } else if (path === 'login') {
+        setCurrentPage('login')
+      } else if (path === 'register') {
+        setCurrentPage('register')
+      } else if (path === 'search') {
+        setCurrentPage('search')
+      } else if (path === 'product-detail') {
+        setCurrentPage('product-detail')
       } else {
         setCurrentPage('home')
       }
@@ -35,9 +41,17 @@ function App() {
   }, [])
 
   const handleNavigation = (page: PageKey) => {
-    setCurrentPage(page)
-    const nextPath = page === 'home' ? '/' : `/${page}`
-    window.history.pushState({}, '', nextPath)
+    setIsPageTransitioning(true)
+    
+    setTimeout(() => {
+      setCurrentPage(page)
+      const nextPath = page === 'home' ? '/' : `/${page}`
+      window.history.pushState({}, '', nextPath)
+      
+      setTimeout(() => {
+        setIsPageTransitioning(false)
+      }, 100)
+    }, 200)
   }
 
   const renderCurrentPage = () => {
@@ -45,21 +59,46 @@ function App() {
       case 'custom-design':
         return <CustomDesign />
       case 'products':
-        return <Products />
+        return <Products onNavigate={handleNavigation} />
       case 'membership':
-        return (
-          <ComingSoon
-            title="G\u00f3i th\u00e0nh vi\u00ean"
-            description="Trang g\u00f3i th\u00e0nh vi\u00ean \u0111ang \u0111\u01b0\u1ee3c ho\u00e0n thi\u1ec7n \u0111\u1ec3 ph\u1ee5c v\u1ee5 b\u1ea1n t\u1ed1t h\u01a1n."
-          />
-        )
+        return <Membership />
       case 'about':
         return <About />
+      case 'login':
+        return <Login onNavigate={handleNavigation} />
+      case 'register':
+        return <Register onNavigate={handleNavigation} />
+      case 'search':
+        return <Search onNavigate={handleNavigation} />
+      case 'product-detail':
+        return <ProductDetail onNavigate={handleNavigation} onAddToCart={(q) => {
+          // demo: push a sample item
+          const sample = { id: Date.now(), name: 'Vòng tay Hoshi Vibe', price: 150000, image: '/item/Vòng Tay Đá Thô.jpg', quantity: q }
+          setCartItems((prev) => [...prev, sample])
+          setCartCount((c) => c + q)
+        }} />
+      case 'cart':
+        return (
+          <Cart
+            onNavigate={handleNavigation}
+            items={cartItems}
+            onUpdateQty={(id, qty) => {
+              setCartItems((prev) => prev.map(i => i.id === id ? { ...i, quantity: qty } : i))
+              setCartCount((_) => cartItems.reduce((s,i)=> (i.id===id? s + qty : s + i.quantity), 0))
+            }}
+            onRemove={(id) => {
+              setCartItems((prev) => prev.filter(i => i.id !== id))
+              setCartCount((_) => cartItems.filter(i=> i.id !== id).reduce((s,i)=> s + i.quantity, 0))
+            }}
+            onCheckout={() => alert('Tiến hành thanh toán (demo)')}
+          />
+        )
       case 'home':
       default:
         return (
           <main>
             <HeroSection />
+            <FengShuiConsultation />
             <ProductCategories />
           </main>
         )
@@ -68,8 +107,10 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
-      <Header onNavigate={handleNavigation} currentPage={currentPage} />
-      {renderCurrentPage()}
+      <Header onNavigate={handleNavigation} currentPage={currentPage} cartCount={cartCount} />
+      <div className={`page-transition ${!isPageTransitioning ? 'enter' : ''}`}>
+        {renderCurrentPage()}
+      </div>
       <Footer />
       <ChatWidget />
     </div>
