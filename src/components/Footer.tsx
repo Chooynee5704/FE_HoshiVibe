@@ -257,7 +257,7 @@ const Footer = () => {
               }}>
                 <MailOutlined style={{ color: 'white', fontSize: '1.125rem' }} />
                 <a 
-                  href="mailto:contact@hoshivibe.com" 
+                  href="mailto:hoshivibe8386@gmail.com" 
                   style={{ 
                     color: '#e5e7eb', 
                     textDecoration: 'none',
@@ -267,7 +267,7 @@ const Footer = () => {
                   onMouseEnter={(e) => e.currentTarget.style.color = '#fbbf24'}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#e5e7eb'}
                 >
-                  contact@hoshivibe.com
+                  hoshivibe8386@gmail.com
                 </a>
               </div>
             </div>

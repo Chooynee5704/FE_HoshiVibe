@@ -2,6 +2,7 @@
 import { Header, HeroSection, ProductCategories, ChatWidget, Footer, About, Products } from './components'
 import CustomDesign from './components/CustomDesign'
 import type { PageKey } from './types/navigation'
+import AdminLayout from './components/Dashboard/AdminLayout'
 
 const ComingSoon = ({ title, description }: { title: string; description: string }) => (
   <div style={{ padding: '4rem 2rem', textAlign: 'center', minHeight: '60vh', backgroundColor: '#fff' }}>
@@ -24,6 +25,8 @@ function App() {
         setCurrentPage('membership')
       } else if (path === 'about') {
         setCurrentPage('about')
+      } else if (path === 'admin') {
+        setCurrentPage('admin')
       } else {
         setCurrentPage('home')
       }
@@ -55,6 +58,8 @@ function App() {
         )
       case 'about':
         return <About />
+      case 'admin':
+        return <AdminLayout />
       case 'home':
       default:
         return (
