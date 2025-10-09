@@ -12,7 +12,11 @@ import {
 } from "lucide-react"
 import { Button, Checkbox } from "antd"
 
-export default function OrderManagementPage() {
+export default function OrderManagementPage({
+  onOpenDetail,
+}: {
+  onOpenDetail?: (orderId: string) => void
+}) {
   const [selectedOrders, setSelectedOrders] = useState<number[]>([])
 
   // mock data
@@ -126,9 +130,13 @@ export default function OrderManagementPage() {
                       </td>
                       <td className="px-4 py-4">
                         <div>
-                          <p className="text-sm font-medium text-blue-600">
+                          <button
+                            className="text-sm font-medium text-blue-600 hover:underline"
+                            onClick={() => onOpenDetail?.(order.orderId)}
+                            title="Xem chi tiết đơn hàng"
+                          >
                             {order.orderId} của {order.customerName}
-                          </p>
+                          </button>
                           <p className="text-xs text-gray-500">{order.customerEmail}</p>
                         </div>
                       </td>
@@ -146,7 +154,11 @@ export default function OrderManagementPage() {
                         <span className="text-sm text-gray-800">{order.amount}</span>
                       </td>
                       <td className="px-4 py-4">
-                        <button className="p-1 hover:bg-gray-100 rounded">
+                        <button
+                          className="p-1 hover:bg-gray-100 rounded"
+                          onClick={() => onOpenDetail?.(order.orderId)}
+                          title="Xem chi tiết"
+                        >
                           <MoreHorizontal className="w-5 h-5 text-gray-600" />
                         </button>
                       </td>

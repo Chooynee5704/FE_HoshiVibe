@@ -4,7 +4,11 @@ import { useState } from "react"
 import { ChevronDown, ChevronRight, ShoppingCart } from "lucide-react"
 import { Button } from "antd"
 
-export default function ProductManagementPage() {
+export default function ProductManagementPage({
+  onCreateNew,
+}: {
+  onCreateNew?: () => void
+}) {
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["bracelets", "necklaces", "strings"])
   const [activeTab, setActiveTab] = useState("best-selling")
 
@@ -63,7 +67,7 @@ export default function ProductManagementPage() {
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <Button type="primary">Tìm kiếm sản phẩm</Button>
+              <Button type="primary" onClick={onCreateNew}>Thêm sản phẩm</Button>
               <Button danger>Xóa sản phẩm</Button>
             </div>
           </div>
