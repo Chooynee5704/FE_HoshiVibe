@@ -4,9 +4,10 @@ import type { PageKey } from '../types/navigation'
 interface HeaderProps {
   onNavigate?: (page: PageKey) => void;
   currentPage?: PageKey;
+  cartCount?: number;
 }
 
-const Header = ({ onNavigate, currentPage = 'home' }: HeaderProps) => {
+const Header = ({ onNavigate, currentPage = 'home', cartCount = 0 }: HeaderProps) => {
   const handleNavigation = (page: PageKey) => {
     if (onNavigate) {
       onNavigate(page);
@@ -180,8 +181,9 @@ const Header = ({ onNavigate, currentPage = 'home' }: HeaderProps) => {
           </nav>
 
           {/* Right side icons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
             <UserOutlined 
+              onClick={() => handleNavigation('login')}
               style={{ fontSize: '1.25rem', color: '#6b7280', cursor: 'pointer', transition: 'color 0.3s ease' }} 
               onMouseEnter={(e) => e.currentTarget.style.color = 'black'}
               onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
@@ -191,11 +193,37 @@ const Header = ({ onNavigate, currentPage = 'home' }: HeaderProps) => {
               onMouseEnter={(e) => e.currentTarget.style.color = 'black'}
               onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
             />
-            <ShoppingCartOutlined 
-              style={{ fontSize: '1.25rem', color: '#6b7280', cursor: 'pointer', transition: 'color 0.3s ease' }} 
-              onMouseEnter={(e) => e.currentTarget.style.color = 'black'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-            />
+            <div id="nav-cart-icon" style={{ position: 'relative' }} onClick={() => handleNavigation('cart')}>
+              <ShoppingCartOutlined 
+                style={{ fontSize: '1.25rem', color: '#6b7280', cursor: 'pointer', transition: 'color 0.3s ease' }} 
+                onMouseEnter={(e) => e.currentTarget.style.color = 'black'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+              />
+              {cartCount > 0 && (
+                <span
+                  aria-label={`Số lượng trong giỏ: ${cartCount}`}
+                  style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-10px',
+                    minWidth: '18px',
+                    height: '18px',
+                    backgroundColor: '#000',
+                    color: '#fff',
+                    borderRadius: '999px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '0 4px',
+                    lineHeight: 1
+                  }}
+                >
+                  {cartCount}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
