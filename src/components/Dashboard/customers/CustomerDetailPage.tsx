@@ -23,7 +23,7 @@ export default function CustomerDetailPage({ customerId, onBack }: Props) {
     taxId: "",
   }
 
-  const purchaseHistory = Array(5).fill(null).map((_, i) => ({
+  const purchaseHistory = Array(5).fill(null).map((_, /*i*/) => ({
     id: `Mhe8u_bdy`,
     description: "Mua vòng tay mệnh mộc",
     date: "18/09/2025 13:12:25",

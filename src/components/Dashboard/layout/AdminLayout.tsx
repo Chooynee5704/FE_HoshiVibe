@@ -15,7 +15,7 @@ export default function AdminLayout() {
 
   // Sub-view cho module Products
   const [productView, setProductView] = useState<"list" | "new" | "edit">("list")
-  const [editingProduct, setEditingProduct] = useState<any>(null)
+  const [editingProduct, /*setEditingProduct*/] = useState<any>(null)
 
   // Sub-view cho module Orders
   const [orderView, setOrderView] = useState<"list" | "detail">("list")
