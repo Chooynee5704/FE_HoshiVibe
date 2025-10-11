@@ -1,2 +1,1 @@
-﻿﻿export type PageKey = 'home' | 'products' | 'membership' | 'custom-design' | 'about' | 'login' | 'register' | 'search' | 'product-detail' | 'cart' | 'admin'
-
+﻿﻿export type PageKey = 'home' | 'products' | 'membership' | 'custom-design' | 'about' | 'login' | 'register' | 'search' | 'product-detail' | 'cart' | 'admin' | 'checkout'

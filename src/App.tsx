@@ -4,6 +4,7 @@ import CustomDesign from './components/CustomDesign'
 import type { PageKey } from './types/navigation'
 import AdminLayout from './components/Dashboard/layout/AdminLayout'
 import FengShuiConsultation from './components/FengShuiConsultation'
+import CheckoutPage from './components/Payment/CheckoutPage'  
 
 
 function App() {
@@ -25,7 +26,6 @@ function App() {
         setCurrentPage('about')
       } else if (path === 'admin') {
         setCurrentPage('admin')
-
       } else if (path === 'login') {
         setCurrentPage('login')
       } else if (path === 'register') {
@@ -34,6 +34,10 @@ function App() {
         setCurrentPage('search')
       } else if (path === 'product-detail') {
         setCurrentPage('product-detail')
+      } else if (path === 'cart') {
+        setCurrentPage('cart')
+      } else if (path === 'checkout') {
+        setCurrentPage('checkout')
       } else {
         setCurrentPage('home')
       }
@@ -99,6 +103,14 @@ function App() {
             onCheckout={() => alert('Tiến hành thanh toán (demo)')}
           />
         )
+      case 'checkout':             
+  return (
+    <CheckoutPage
+      onNavigate={handleNavigation}
+      items={cartItems}
+      total={cartItems.reduce((s,i)=> s + i.price*i.quantity, 0)}
+    />
+  )
       case 'home':
       default:
         return (

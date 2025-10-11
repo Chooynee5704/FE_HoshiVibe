@@ -20,9 +20,9 @@ interface CartProps {
 
 const formatVND = (n: number) => n.toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' VNĐ'
 
-const Cart = ({ onNavigate, items, onUpdateQty, onRemove, onCheckout }: CartProps) => {
+const Cart = ({ onNavigate, items, onUpdateQty, onRemove, /*onCheckout*/ }: CartProps) => {
   const [note, setNote] = useState('')
-  const [payment, setPayment] = useState<'vietqr' | 'zalopay' | 'momo' | 'cod'>('vietqr')
+  // const [payment, setPayment] = useState<'vietqr' | 'zalopay' | 'momo' | 'cod'>('vietqr')
 
   const { subtotal, total, itemCount } = useMemo(() => {
     const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
@@ -109,7 +109,7 @@ const Cart = ({ onNavigate, items, onUpdateQty, onRemove, onCheckout }: CartProp
 
             {/* Payment methods */}
             <div className="pay__title">Phương thức thanh toán</div>
-            <div onClick={()=> setPayment('vietqr')} className={`pay__opt ${payment==='vietqr' ? 'pay__opt--active' : ''}`}>
+            {/* <div onClick={()=> setPayment('vietqr')} className={`pay__opt ${payment==='vietqr' ? 'pay__opt--active' : ''}`}>
               <span className="pay__icon pay__vietqr">QR</span>
               <span>VietQR</span>
               <input className="pay__radio" type="radio" checked={payment==='vietqr'} readOnly />
@@ -128,16 +128,19 @@ const Cart = ({ onNavigate, items, onUpdateQty, onRemove, onCheckout }: CartProp
               <span className="pay__icon pay__cod">$</span>
               <span>Thanh toán tiền mặt</span>
               <input className="pay__radio" type="radio" checked={payment==='cod'} readOnly />
-            </div>
+            </div> */}
 
             {/* Price breakdown */}
             <div className="cart__line" style={{ marginTop:10 }}><span>Tạm tính</span><span>{formatVND(subtotal)}</span></div>
             <div className="cart__line"><span>Giảm giá</span><span>0 VNĐ</span></div>
             <div className="pay__grand"><span>Tổng thanh toán</span><span className="pay__grand-amount">{formatVND(total)}</span></div>
 
-            <button onClick={onCheckout} style={{ width:'100%', marginTop:14, padding:'16px 14px', background:'#000', color:'#fff', border:'none', borderRadius:12, cursor:'pointer', fontWeight:900, letterSpacing:'.06em', textTransform:'uppercase' }}>
-              Thanh toán ngay
-            </button>
+            <button   onClick={() => onNavigate?.('checkout')}   // 👈 thay vì onCheckout()
+  style={{ width:'100%', marginTop:14, padding:'16px 14px', background:'#000', color:'#fff',
+           border:'none', borderRadius:12, cursor:'pointer', fontWeight:900, letterSpacing:'.06em',
+           textTransform:'uppercase' }}>
+  Thanh toán ngay
+</button>
             <div style={{ color:'#6b7280', fontSize:12, marginTop:8 }}>Freeship đơn từ 300.000 VNĐ (nội thành).</div>
           </aside>
         </div>
