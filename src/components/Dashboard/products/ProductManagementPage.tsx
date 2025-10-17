@@ -1,33 +1,105 @@
+// src/components/Dashboard/products/ProductManagementPage.tsx
 "use client"
 
-import { useState } from "react"
-import { ChevronDown, ChevronRight, ShoppingCart } from "lucide-react"
-import { Button } from "antd"
+import { useEffect, useMemo, useState } from "react"
+import { ChevronRight } from "lucide-react"
+import { Button, message, Spin } from "antd"
+import CategoriesSidebar, { type CategoryItem } from "./CategoriesSidebar"
+import { searchProducts, type ProductApi } from "../../../api/productsAPI"
+import ProductDetailDrawer from "./ProductDetailDrawer"
 
-export default function ProductManagementPage({
-  onCreateNew,
-}: {
-  onCreateNew?: () => void
-}) {
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(["bracelets", "necklaces", "strings"])
+type UIProduct = {
+  id: string
+  name: string
+  price: number
+  image: string
+  status: "in-stock" | "not-available" | "ready-to-publish" | string
+  stock: number
+  category: string
+}
+
+export default function ProductManagementPage({ onCreateNew }: { onCreateNew?: () => void }) {
   const [activeTab, setActiveTab] = useState("best-selling")
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(["bracelets", "necklaces", "strings"])
+  const [loading, setLoading] = useState(false)
+  const [products, setProducts] = useState<UIProduct[]>([])
 
-  const toggleCategory = (category: string) => {
-    setExpandedCategories((prev) =>
-      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category],
-    )
+  // Drawer state
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailProduct, setDetailProduct] = useState<UIProduct | null>(null)
+
+  const rm = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase()
+  const normalizeCategory = (raw?: string, name?: string) => {
+    const c = rm(raw || ""); const n = rm(name || "")
+    if (/(bracelet|vong tay)/.test(c) || /(bracelet|vong tay)/.test(n)) return "bracelets"
+    if (/(ring|nhan)/.test(c) || /(ring|nhan)/.test(n)) return "rings"
+    if (/(necklace|vong co)/.test(c) || /(necklace|vong co)/.test(n)) return "necklaces"
+    if (/(string|day phong thuy|day)/.test(c) || /(string|day phong thuy|day)/.test(n)) return "strings"
+    return "others"
   }
 
-  const products = Array(6)
-    .fill(null)
-    .map((_, i) => ({
-      id: i + 1,
-      name: "Vòng cổ Hạnh Phúc",
-      price: "150.000 VNĐ",
-      rating: 5,
-      reviews: 0,
-      image: `/placeholder.svg?height=200&width=200&query=vietnamese+jewelry+necklace`,
-    }))
+  const pickId = (p: ProductApi) =>
+    String((p as any).productId ?? (p as any).productID ?? p.product_Id ?? (p as any).id ?? "")
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        const data = await searchProducts()
+        const mapped: UIProduct[] = data.map((p: ProductApi) => ({
+          id: pickId(p),
+          name: p.name,
+          price: Number(p.price) || 0,
+          image: p.imageUrl || p.imageURL || "/placeholder.svg",
+          status: p.status,
+          stock: Number(p.stock) || 0,
+          category: normalizeCategory(p.category, p.name),
+        }))
+        setProducts(mapped)
+      } catch (err: any) {
+        const msg = err?.response?.data?.message || err?.response?.data || err?.message || "Không tải được sản phẩm"
+        message.error(String(msg))
+        console.error("SEARCH products error:", err?.response?.status, err?.response?.data)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  const categories: CategoryItem[] = useMemo(() => {
+    const count = { bracelets: 0, rings: 0, necklaces: 0, others: 0, strings: 0 }
+    for (const p of products) {
+      const c = p.category
+      if (c.includes("bracelets")) count.bracelets++
+      else if (c.includes("rings")) count.rings++
+      else if (c.includes("necklaces")) count.necklaces++
+      else if (c.includes("strings")) count.strings++
+      else count.others++
+    }
+    return [
+      { key: "bracelets", label: "Vòng tay", count: count.bracelets },
+      { key: "rings", label: "Nhẫn", count: count.rings },
+      { key: "necklaces", label: "Vòng cổ", count: count.necklaces },
+      { key: "strings", label: "Dây phong thủy", count: count.strings },
+      { key: "others", label: "Khác", count: count.others },
+    ]
+  }, [products])
+
+  const toggleCategory = (key: string) =>
+    setExpandedCategories((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]))
+
+  const statusStyle = (s: UIProduct["status"]) => {
+    switch (s) {
+      case "in-stock": return "bg-green-50 text-green-700 border-green-200"
+      case "not-available": return "bg-red-50 text-red-700 border-red-200"
+      case "ready-to-publish": return "bg-amber-50 text-amber-700 border-amber-200"
+      default: return "bg-gray-50 text-gray-700 border-gray-200"
+    }
+  }
+
+  const formatVND = (n: number) =>
+    n.toLocaleString("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 })
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -41,34 +113,20 @@ export default function ProductManagementPage({
         <div className="px-6 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab("best-selling")}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                  activeTab === "best-selling" ? "text-blue-600 bg-blue-50" : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                Bán chạy
-              </button>
-              <button
-                onClick={() => setActiveTab("popular")}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                  activeTab === "popular" ? "text-blue-600 bg-blue-50" : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                Phổ biến
-              </button>
-              <button
-                onClick={() => setActiveTab("newest")}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                  activeTab === "newest" ? "text-blue-600 bg-blue-50" : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                Mới nhất
-              </button>
+              {["best-selling", "popular", "newest"].map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                    activeTab === key ? "text-blue-600 bg-blue-50" : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  {key === "best-selling" ? "Bán chạy" : key === "popular" ? "Phổ biến" : "Mới nhất"}
+                </button>
+              ))}
             </div>
             <div className="flex items-center gap-2">
               <Button type="primary" onClick={onCreateNew}>Thêm sản phẩm</Button>
-              <Button danger>Xóa sản phẩm</Button>
             </div>
           </div>
         </div>
@@ -76,94 +134,61 @@ export default function ProductManagementPage({
         {/* Content Area */}
         <div className="flex-1 px-6 pb-6">
           <div className="flex gap-6">
-            {/* Categories Sidebar */}
-            <div className="w-64 bg-white rounded-lg border border-gray-200 p-4 h-fit">
-              <h2 className="font-semibold text-gray-800 mb-4">Danh mục sản phẩm</h2>
-              <div className="space-y-2">
-                <button
-                  onClick={() => toggleCategory("bracelets")}
-                  className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    {expandedCategories.includes("bracelets") ? (
-                      <ChevronDown className="w-4 h-4 text-gray-500" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-gray-500" />
-                    )}
-                    <span className="text-sm text-gray-700">Vòng tay</span>
-                  </div>
-                  <span className="text-sm text-gray-500">25</span>
-                </button>
-                <button
-                  onClick={() => toggleCategory("necklaces")}
-                  className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    {expandedCategories.includes("necklaces") ? (
-                      <ChevronDown className="w-4 h-4 text-gray-500" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-gray-500" />
-                    )}
-                    <span className="text-sm text-gray-700">Vòng cổ</span>
-                  </div>
-                  <span className="text-sm text-gray-500">25</span>
-                </button>
-                <button
-                  onClick={() => toggleCategory("strings")}
-                  className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    {expandedCategories.includes("strings") ? (
-                      <ChevronDown className="w-4 h-4 text-gray-500" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-gray-500" />
-                    )}
-                    <span className="text-sm text-gray-700">Dây phong thủy</span>
-                  </div>
-                  <span className="text-sm text-gray-500">25</span>
-                </button>
-              </div>
-            </div>
+            <CategoriesSidebar
+              categories={categories}
+              expandedKeys={expandedCategories}
+              onToggle={toggleCategory}
+            />
 
             {/* Product Grid */}
             <div className="flex-1">
-              <div className="grid grid-cols-3 gap-4">
-                {products.map((product) => (
-                  <div
-                    key={product.id}
-                    className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    <div className="aspect-square bg-gray-100 relative">
-                      <img
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-sm text-gray-600 mb-2">{product.name}</h3>
-                      <p className="text-lg font-semibold text-gray-800 mb-3">{product.price}</p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          {Array(product.rating)
-                            .fill(null)
-                            .map((_, i) => (
-                              <svg key={i} className="w-4 h-4 fill-yellow-400" viewBox="0 0 20 20">
-                                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                              </svg>
-                            ))}
-                          <span className="text-xs text-gray-500 ml-1">({product.reviews})</span>
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <Spin />
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-4">
+                  {products.map((product) => (
+                    <div
+                      key={product.id}
+                      className="relative bg-white rounded-lg border overflow-hidden hover:shadow-lg transition-shadow border-gray-200 cursor-pointer"
+                      onClick={() => { setDetailProduct(product); setDetailOpen(true) }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          setDetailProduct(product)
+                          setDetailOpen(true)
+                        }
+                      }}
+                    >
+                      <div className="aspect-square bg-gray-100">
+                        <img
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      <div className="p-4">
+                        <h3 className="text-sm text-gray-600 mb-2 line-clamp-2">{product.name}</h3>
+                        <p className="text-lg font-semibold text-gray-800 mb-3">{formatVND(product.price)}</p>
+
+                        <div className="flex items-center justify-between">
+                          <span className={`px-2 py-1 text-xs border rounded-md font-medium ${statusStyle(product.status)}`}>
+                            {product.status}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            Tồn kho: <span className="font-semibold text-gray-800">{product.stock}</span>
+                          </span>
                         </div>
-                        <button className="w-8 h-8 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
-                          <ShoppingCart className="w-4 h-4 text-white" />
-                        </button>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
-              {/* Pagination */}
+              {/* Pagination (mock) */}
               <div className="flex items-center justify-center gap-2 mt-8">
                 <button className="p-2 hover:bg-gray-100 rounded-lg">
                   <ChevronRight className="w-5 h-5 text-gray-600 rotate-180" />
@@ -178,6 +203,20 @@ export default function ProductManagementPage({
             </div>
           </div>
         </div>
+
+        {/* Drawer chi tiết sản phẩm + Delete */}
+        <ProductDetailDrawer
+          open={detailOpen}
+          product={detailProduct}
+          onClose={() => setDetailOpen(false)}
+          onDeleted={(id) => {
+            // Cập nhật list & đóng Drawer
+            setProducts(prev => prev.filter(p => p.id === id ? false : true))
+            setDetailOpen(false)
+            setDetailProduct(null)
+            message.success("Xóa sản phẩm thành công.")
+          }}
+        />
       </main>
     </div>
   )

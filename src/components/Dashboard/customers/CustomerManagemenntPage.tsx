@@ -104,7 +104,7 @@ export default function CustomerManagementPage({
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">YOB (Ngày sinh)</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Zodiac (Cung)</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">YOB Destination (Nơi sinh)</th>
-                <th className="px-4 py-3 w-12"></th>
+                {/* <th className="px-4 py-3 w-12"></th> */}
               </tr>
             </thead>
 
