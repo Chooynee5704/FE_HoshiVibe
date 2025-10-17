@@ -10,4 +10,13 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://hoshi-vibe-site.somee.com',
+        changeOrigin: true,
+        // rewrite: path => path.replace(/^\/api/, '/api') // giữ nguyên
+      }
+    }
+  }
 })
