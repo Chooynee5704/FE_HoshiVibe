@@ -21,6 +21,13 @@ export interface UserWithProfile {
 }
 
 export async function getAllUsersWithProfiles(){
-    const response = await api.get<UserWithProfile[]>('/UserAndProfile/get-all-user-information');
+    const response = await api.get<UserWithProfile[]>('/UserAndProfile/get-all-user-informations/');
     return response.data ?? [];
+}
+
+export async function getUserWithProfileById(userId: string){
+    const response = await api.get<UserWithProfile>(`/UserAndProfile/get-user-profile/${encodeURIComponent(userId)}`);
+    const data = response.data;
+    return data;
+
 }

@@ -23,7 +23,7 @@ export type HvUser = {
 };
 
 export async function loginApi(payload: LoginRequest) {
-  const { data } = await api.post<LoginResponse>("/Authentication/login", payload);
+  const { data } = await api.post<LoginResponse>("Authentication/login", payload);
 
   localStorage.setItem("hv_token", data.token);
   localStorage.setItem("hv_user", JSON.stringify({
