@@ -27,6 +27,7 @@ export default function ProductDetail({
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<ProductApi | null>(null)
   const [qty, setQty] = useState(1)
+  const [toast, setToast] = useState<string | null>(null) // ✅ thêm state toast
 
   useEffect(() => {
     let alive = true
@@ -46,6 +47,13 @@ export default function ProductDetail({
       alive = false
     }
   }, [productId])
+
+  // ✅ Tự động ẩn toast sau 1.5s
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 1500)
+    return () => clearTimeout(t)
+  }, [toast])
 
   if (loading) {
     return (
@@ -83,7 +91,7 @@ export default function ProductDetail({
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: "40px auto", padding: "0 20px" }}>
+    <div style={{ maxWidth: 1200, margin: "40px auto", padding: "0 20px", position: "relative" }}>
       <button
         onClick={() => onNavigate?.("search")}
         style={{ border: "none", background: "none", cursor: "pointer", marginBottom: 24 }}
@@ -163,7 +171,10 @@ export default function ProductDetail({
 
           {/* Thêm vào giỏ */}
           <button
-            onClick={() => onAddToCart?.(mini, qty)}
+            onClick={() => {
+              onAddToCart?.(mini, qty)
+              setToast("Đã thêm vào giỏ hàng")
+            }}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -189,17 +200,39 @@ export default function ProductDetail({
           </div>
         </div>
       </div>
-      <RelatedProducts
-    // không truyền items => tự dùng mockdata bên trong component
-    title="Sản phẩm liên quan"
-    columns={4}
-    currencyFormatter={formatVND}
-    onProductClick={(id) => onNavigate?.('product-detail')} // có thể đổi theo id
-    onQuickAdd={() => {
-      setToast('Đã thêm nhanh')
-      onAddToCart?.(1)
-    }}
-  />
+
+      {/* ✅ Sản phẩm liên quan */}
+      <div style={{ marginTop: 48 }}>
+        <RelatedProducts
+          title="Sản phẩm liên quan"
+          columns={4}
+          currencyFormatter={formatVND}
+          onProductClick={id => onNavigate?.("product-detail", { id })}
+          onQuickAdd={item => {
+            onAddToCart?.(item, 1)
+            setToast("Đã thêm nhanh")
+          }}
+        />
+      </div>
+
+      {/* ✅ Toast hiển thị */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            left: "50%",
+            bottom: 24,
+            transform: "translateX(-50%)",
+            background: "#000",
+            color: "#fff",
+            padding: "10px 16px",
+            borderRadius: 12,
+            fontWeight: 700
+          }}
+        >
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

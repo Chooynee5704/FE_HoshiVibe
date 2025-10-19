@@ -1,23 +1,36 @@
 ﻿// src/App.tsx
 import { useState, useEffect } from 'react'
-import { Header, HeroSection, ProductCategories, ChatWidget, Footer, About, Products, Login, Register, Membership, Search, ProductDetail, Cart } from './components'
+import {
+  Header, HeroSection, ProductCategories, ChatWidget, Footer,
+  About, Products, Login, Register, Membership, Search, ProductDetail, Cart
+} from './components'
 import CustomDesign from './components/CustomDesign'
 import type { PageKey } from './types/navigation'
 import AdminLayout from './components/Dashboard/layout/AdminLayout'
 import FengShuiConsultation from './components/FengShuiConsultation'
 import CheckoutPage from './components/Payment/CheckoutPage'
 
-type NavParams = { id?: string }
+/** Cho phép id là string hoặc number để khớp mọi nguồn dữ liệu (slug/uuid/number) */
+type IdLike = string | number
+
+type NavParams = { id?: IdLike }
+
+type CartItem = {
+  id: IdLike
+  name: string
+  price: number
+  image: string
+  quantity: number
+}
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageKey>('home')
   const [isPageTransitioning, setIsPageTransitioning] = useState(false)
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [cartCount, setCartCount] = useState(0)
-  const [cartItems, setCartItems] = useState<
-    { id: string; name: string; price: number; image: string; quantity: number }[]
-  >([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
 
+  // đồng bộ URL -> state
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname.replace(/^\/+/, '')
@@ -50,74 +63,107 @@ function App() {
 
   const handleNavigation = (page: PageKey, params?: NavParams) => {
     setIsPageTransitioning(true)
-    if (page === 'product-detail' && params?.id) {
-      setSelectedProductId(params.id)
+
+    if (page === 'product-detail' && params?.id != null) {
+      setSelectedProductId(String(params.id))
     }
 
     setTimeout(() => {
       setCurrentPage(page)
 
-      // ✅ THỐNG NHẤT URL với popstate ở trên
+      // Cập nhật URL để phối hợp với popstate
       const nextPath =
-        page === 'product-detail' && params?.id
+        page === 'product-detail' && params?.id != null
           ? `/product-detail/${params.id}`
           : page === 'home'
           ? '/'
           : `/${page}`
 
       window.history.pushState({}, '', nextPath)
-
       setTimeout(() => setIsPageTransitioning(false), 100)
     }, 200)
   }
+
+  // tiện ích: tính tổng số lượng từ mảng items
+  const calcCount = (items: CartItem[]) => items.reduce((s, i) => s + i.quantity, 0)
 
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'custom-design':
         return <CustomDesign />
+
       case 'products':
         return <Products onNavigate={handleNavigation} />
+
       case 'membership':
         return <Membership />
+
       case 'about':
         return <About />
+
       case 'admin':
         return <AdminLayout />
+
       case 'login':
         return <Login onNavigate={handleNavigation} />
+
       case 'register':
         return <Register onNavigate={handleNavigation} />
+
       case 'search':
         return <Search onNavigate={handleNavigation} />
+
       case 'product-detail':
         return (
           <ProductDetail
-            productId={selectedProductId || ''}
+            // nếu component của bạn nhận number, bạn có thể Number(selectedProductId)
+            productId={selectedProductId ?? undefined}
             onNavigate={handleNavigation}
-            onAddToCart={(product, quantity) => {
-              setCartItems(prev => [...prev, { ...product, quantity }])
-              setCartCount(c => c + quantity)
+            // onAddToCart(product, quantity)
+            onAddToCart={(product: { id: IdLike; name: string; price: number; image: string }, quantity: number) => {
+              setCartItems(prev => {
+                // nếu đã có thì cộng dồn
+                const idx = prev.findIndex(i => String(i.id) === String(product.id))
+                let next: CartItem[]
+                if (idx >= 0) {
+                  next = prev.map((i, k) =>
+                    k === idx ? { ...i, quantity: i.quantity + quantity } : i
+                  )
+                } else {
+                  next = [...prev, { ...product, quantity }]
+                }
+                setCartCount(calcCount(next))
+                return next
+              })
             }}
           />
         )
+
       case 'cart':
         return (
           <Cart
             onNavigate={handleNavigation}
             items={cartItems}
-            onUpdateQty={(id, qty) => {
-              setCartItems(prev => prev.map(i => (i.id === id ? { ...i, quantity: qty } : i)))
-              setCartCount(
-                _ => cartItems.reduce((s, i) => (i.id === id ? s + qty : s + i.quantity), 0)
-              )
+            onUpdateQty={(id: IdLike, qty: number) => {
+              setCartItems(prev => {
+                const next = prev.map(i =>
+                  String(i.id) === String(id) ? { ...i, quantity: qty } : i
+                )
+                setCartCount(calcCount(next))
+                return next
+              })
             }}
-            onRemove={id => {
-              setCartItems(prev => prev.filter(i => i.id !== id))
-              setCartCount(_ => cartItems.filter(i => i.id !== id).reduce((s, i) => s + i.quantity, 0))
+            onRemove={(id: IdLike) => {
+              setCartItems(prev => {
+                const next = prev.filter(i => String(i.id) !== String(id))
+                setCartCount(calcCount(next))
+                return next
+              })
             }}
             onCheckout={() => alert('Tiến hành thanh toán (demo)')}
           />
         )
+
       case 'checkout':
         return (
           <CheckoutPage
@@ -126,6 +172,7 @@ function App() {
             total={cartItems.reduce((s, i) => s + i.price * i.quantity, 0)}
           />
         )
+
       case 'home':
       default:
         return (
@@ -141,7 +188,9 @@ function App() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
       <Header onNavigate={handleNavigation} currentPage={currentPage} cartCount={cartCount} />
-      <div className={`page-transition ${!isPageTransitioning ? 'enter' : ''}`}>{renderCurrentPage()}</div>
+      <div className={`page-transition ${!isPageTransitioning ? 'enter' : ''}`}>
+        {renderCurrentPage()}
+      </div>
       <Footer />
       <ChatWidget />
     </div>
