@@ -10,13 +10,12 @@ import AdminLayout from './components/Dashboard/layout/AdminLayout'
 import FengShuiConsultation from './components/FengShuiConsultation'
 import CheckoutPage from './components/Payment/CheckoutPage'
 
-/** Cho phép id là string hoặc number để khớp mọi nguồn dữ liệu (slug/uuid/number) */
 type IdLike = string | number
-
 type NavParams = { id?: IdLike }
 
+/** Đồng bộ với Cart: id là number */
 type CartItem = {
-  id: IdLike
+  id: number
   name: string
   price: number
   image: string
@@ -30,12 +29,10 @@ function App() {
   const [cartCount, setCartCount] = useState(0)
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
 
-  // đồng bộ URL -> state
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname.replace(/^\/+/, '')
 
-      // URL dạng: /product-detail/<id>
       const productMatch = path.match(/^product-detail\/(.+)$/)
       if (productMatch) {
         setCurrentPage('product-detail')
@@ -71,7 +68,6 @@ function App() {
     setTimeout(() => {
       setCurrentPage(page)
 
-      // Cập nhật URL để phối hợp với popstate
       const nextPath =
         page === 'product-detail' && params?.id != null
           ? `/product-detail/${params.id}`
@@ -84,7 +80,6 @@ function App() {
     }, 200)
   }
 
-  // tiện ích: tính tổng số lượng từ mảng items
   const calcCount = (items: CartItem[]) => items.reduce((s, i) => s + i.quantity, 0)
 
   const renderCurrentPage = () => {
@@ -116,21 +111,23 @@ function App() {
       case 'product-detail':
         return (
           <ProductDetail
-            // nếu component của bạn nhận number, bạn có thể Number(selectedProductId)
-            productId={selectedProductId ?? undefined}
+            // ép về string để khớp prop của ProductDetail
+            productId={selectedProductId ?? ''}
             onNavigate={handleNavigation}
-            // onAddToCart(product, quantity)
-            onAddToCart={(product: { id: IdLike; name: string; price: number; image: string }, quantity: number) => {
+            onAddToCart={(
+              product: { id: IdLike; name: string; price: number; image: string },
+              quantity: number
+            ) => {
+              const pid = Number(product.id) // 👈 chuẩn hóa về number cho Cart
               setCartItems(prev => {
-                // nếu đã có thì cộng dồn
-                const idx = prev.findIndex(i => String(i.id) === String(product.id))
+                const idx = prev.findIndex(i => i.id === pid)
                 let next: CartItem[]
                 if (idx >= 0) {
                   next = prev.map((i, k) =>
                     k === idx ? { ...i, quantity: i.quantity + quantity } : i
                   )
                 } else {
-                  next = [...prev, { ...product, quantity }]
+                  next = [...prev, { id: pid, name: product.name, price: product.price, image: product.image, quantity }]
                 }
                 setCartCount(calcCount(next))
                 return next
@@ -144,18 +141,16 @@ function App() {
           <Cart
             onNavigate={handleNavigation}
             items={cartItems}
-            onUpdateQty={(id: IdLike, qty: number) => {
+            onUpdateQty={(id: number, qty: number) => {
               setCartItems(prev => {
-                const next = prev.map(i =>
-                  String(i.id) === String(id) ? { ...i, quantity: qty } : i
-                )
+                const next = prev.map(i => (i.id === id ? { ...i, quantity: qty } : i))
                 setCartCount(calcCount(next))
                 return next
               })
             }}
-            onRemove={(id: IdLike) => {
+            onRemove={(id: number) => {
               setCartItems(prev => {
-                const next = prev.filter(i => String(i.id) !== String(id))
+                const next = prev.filter(i => i.id !== id)
                 setCartCount(calcCount(next))
                 return next
               })
