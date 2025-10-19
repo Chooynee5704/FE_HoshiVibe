@@ -57,12 +57,18 @@ export async function searchProducts(params?: Record<string, any>) {
 }
 
 export async function getProductById(productId: string) {
-  const token = getToken(); // dùng lại hàm getToken sẵn có
-  const res = await api.get(`/Product/${productId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  try  {
+  const token = getToken?.(); // dùng lại hàm getToken sẵn có
+  const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  const res = await api.get(`/Product/${productId}`, config);
   return res.data;
+} catch (err) {
+  console.error("Error fetching product detail:", err);
+  throw err;
 }
+}
+
+
 
 export async function deleteProduct(productId: string) {
   const token = getToken()

@@ -277,16 +277,17 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
 
           {/* Grid */}
           <div
-            ref={sectionRef}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '2rem',
-              marginBottom: '4rem',
-              opacity: isVisible ? 1 : 0,
-              animation: isVisible ? 'fadeInUp 0.8s ease-out' : 'none'
-            }}
-          >
+  ref={sectionRef}
+  style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 400px))',
+    justifyContent: 'center', // 👈 căn giữa nếu ít phần tử
+    gap: '2rem',
+    marginBottom: '4rem',
+    opacity: isVisible ? 1 : 0,
+    animation: isVisible ? 'fadeInUp 0.8s ease-out' : 'none'
+  }}
+>
             {!loading && sortedProducts.map((product, index) => (
               <div
                 key={product.id}
@@ -300,7 +301,7 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
                   animationDelay: `${index * 0.1}s`,
                   cursor: 'pointer'
                 }}
-                onClick={() => onNavigate?.('product-detail')}
+               onClick={() => onNavigate?.('product-detail', { id: product.id })}
               >
                 {/* Image */}
                 <div style={{ height: '280px', backgroundColor: '#f9fafb', position: 'relative', overflow: 'hidden' }}>

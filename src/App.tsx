@@ -1,46 +1,46 @@
-﻿import { useState, useEffect } from 'react'
+﻿// src/App.tsx
+import { useState, useEffect } from 'react'
 import { Header, HeroSection, ProductCategories, ChatWidget, Footer, About, Products, Login, Register, Membership, Search, ProductDetail, Cart } from './components'
 import CustomDesign from './components/CustomDesign'
 import type { PageKey } from './types/navigation'
 import AdminLayout from './components/Dashboard/layout/AdminLayout'
 import FengShuiConsultation from './components/FengShuiConsultation'
-import CheckoutPage from './components/Payment/CheckoutPage'  
+import CheckoutPage from './components/Payment/CheckoutPage'
 
+type NavParams = { id?: string }
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageKey>('home')
   const [isPageTransitioning, setIsPageTransitioning] = useState(false)
   const [cartCount, setCartCount] = useState(0)
-  const [cartItems, setCartItems] = useState<{ id:number; name:string; price:number; image:string; quantity:number }[]>([])
+  const [cartItems, setCartItems] = useState<
+    { id: string; name: string; price: number; image: string; quantity: number }[]
+  >([])
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
 
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname.replace(/^\/+/, '')
-      if (path === 'custom-design') {
-        setCurrentPage('custom-design')
-      } else if (path === 'products') {
-        setCurrentPage('products')
-      } else if (path === 'membership') {
-        setCurrentPage('membership')
-      } else if (path === 'about') {
-        setCurrentPage('about')
-      } else if (path === 'admin') {
-        setCurrentPage('admin')
-      } else if (path === 'login') {
-        setCurrentPage('login')
-      } else if (path === 'register') {
-        setCurrentPage('register')
-      } else if (path === 'search') {
-        setCurrentPage('search')
-      } else if (path === 'product-detail') {
+
+      // URL dạng: /product-detail/<id>
+      const productMatch = path.match(/^product-detail\/(.+)$/)
+      if (productMatch) {
         setCurrentPage('product-detail')
-      } else if (path === 'cart') {
-        setCurrentPage('cart')
-      } else if (path === 'checkout') {
-        setCurrentPage('checkout')
-      } else {
-        setCurrentPage('home')
+        setSelectedProductId(productMatch[1])
+        return
       }
+
+      if (path === 'custom-design') setCurrentPage('custom-design')
+      else if (path === 'products') setCurrentPage('products')
+      else if (path === 'membership') setCurrentPage('membership')
+      else if (path === 'about') setCurrentPage('about')
+      else if (path === 'admin') setCurrentPage('admin')
+      else if (path === 'login') setCurrentPage('login')
+      else if (path === 'register') setCurrentPage('register')
+      else if (path === 'search') setCurrentPage('search')
+      else if (path === 'cart') setCurrentPage('cart')
+      else if (path === 'checkout') setCurrentPage('checkout')
+      else setCurrentPage('home')
     }
 
     handlePopState()
@@ -48,17 +48,26 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  const handleNavigation = (page: PageKey) => {
+  const handleNavigation = (page: PageKey, params?: NavParams) => {
     setIsPageTransitioning(true)
-    
+    if (page === 'product-detail' && params?.id) {
+      setSelectedProductId(params.id)
+    }
+
     setTimeout(() => {
       setCurrentPage(page)
-      const nextPath = page === 'home' ? '/' : `/${page}`
+
+      // ✅ THỐNG NHẤT URL với popstate ở trên
+      const nextPath =
+        page === 'product-detail' && params?.id
+          ? `/product-detail/${params.id}`
+          : page === 'home'
+          ? '/'
+          : `/${page}`
+
       window.history.pushState({}, '', nextPath)
-      
-      setTimeout(() => {
-        setIsPageTransitioning(false)
-      }, 100)
+
+      setTimeout(() => setIsPageTransitioning(false), 100)
     }, 200)
   }
 
@@ -81,36 +90,42 @@ function App() {
       case 'search':
         return <Search onNavigate={handleNavigation} />
       case 'product-detail':
-        return <ProductDetail onNavigate={handleNavigation} onAddToCart={(q) => {
-          // demo: push a sample item
-          const sample = { id: Date.now(), name: 'Vòng tay Hoshi Vibe', price: 150000, image: '/item/Vòng Tay Đá Thô.jpg', quantity: q }
-          setCartItems((prev) => [...prev, sample])
-          setCartCount((c) => c + q)
-        }} />
+        return (
+          <ProductDetail
+            productId={selectedProductId || ''}
+            onNavigate={handleNavigation}
+            onAddToCart={(product, quantity) => {
+              setCartItems(prev => [...prev, { ...product, quantity }])
+              setCartCount(c => c + quantity)
+            }}
+          />
+        )
       case 'cart':
         return (
           <Cart
             onNavigate={handleNavigation}
             items={cartItems}
             onUpdateQty={(id, qty) => {
-              setCartItems((prev) => prev.map(i => i.id === id ? { ...i, quantity: qty } : i))
-              setCartCount((_) => cartItems.reduce((s,i)=> (i.id===id? s + qty : s + i.quantity), 0))
+              setCartItems(prev => prev.map(i => (i.id === id ? { ...i, quantity: qty } : i)))
+              setCartCount(
+                _ => cartItems.reduce((s, i) => (i.id === id ? s + qty : s + i.quantity), 0)
+              )
             }}
-            onRemove={(id) => {
-              setCartItems((prev) => prev.filter(i => i.id !== id))
-              setCartCount((_) => cartItems.filter(i=> i.id !== id).reduce((s,i)=> s + i.quantity, 0))
+            onRemove={id => {
+              setCartItems(prev => prev.filter(i => i.id !== id))
+              setCartCount(_ => cartItems.filter(i => i.id !== id).reduce((s, i) => s + i.quantity, 0))
             }}
             onCheckout={() => alert('Tiến hành thanh toán (demo)')}
           />
         )
-      case 'checkout':             
-  return (
-    <CheckoutPage
-      onNavigate={handleNavigation}
-      items={cartItems}
-      total={cartItems.reduce((s,i)=> s + i.price*i.quantity, 0)}
-    />
-  )
+      case 'checkout':
+        return (
+          <CheckoutPage
+            onNavigate={handleNavigation}
+            items={cartItems}
+            total={cartItems.reduce((s, i) => s + i.price * i.quantity, 0)}
+          />
+        )
       case 'home':
       default:
         return (
@@ -126,9 +141,7 @@ function App() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
       <Header onNavigate={handleNavigation} currentPage={currentPage} cartCount={cartCount} />
-      <div className={`page-transition ${!isPageTransitioning ? 'enter' : ''}`}>
-        {renderCurrentPage()}
-      </div>
+      <div className={`page-transition ${!isPageTransitioning ? 'enter' : ''}`}>{renderCurrentPage()}</div>
       <Footer />
       <ChatWidget />
     </div>
