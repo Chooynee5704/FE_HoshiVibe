@@ -202,7 +202,7 @@ export default function ProductDetail({
       </div>
 
       {/* ✅ Sản phẩm liên quan */}
-      <div style={{ marginTop: 48 }}>
+      {/* <div style={{ marginTop: 48 }}>
         <RelatedProducts
           title="Sản phẩm liên quan"
           columns={4}
@@ -213,7 +213,7 @@ export default function ProductDetail({
             setToast("Đã thêm nhanh")
           }}
         />
-      </div>
+      </div> */}
 
       {/* ✅ Toast hiển thị */}
       {toast && (
