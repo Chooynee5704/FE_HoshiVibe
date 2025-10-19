@@ -6,7 +6,7 @@ import type { PageKey } from '../../types/navigation'
 import { searchProducts, type ProductApi } from '../../api/productsAPI'
 
 interface SearchProps {
-  onNavigate?: (page: PageKey) => void;
+  onNavigate?: (page: PageKey, params?: { id?: string | number }) => void;
   searchQuery?: string;
   category?: string;
 }
@@ -301,7 +301,7 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
                   animationDelay: `${index * 0.1}s`,
                   cursor: 'pointer'
                 }}
-               onClick={() => onNavigate?.('product-detail', { id: product.id })}
+               onClick={() => onNavigate?.('product-detail', { id: String(product.id) })}
               >
                 {/* Image */}
                 <div style={{ height: '280px', backgroundColor: '#f9fafb', position: 'relative', overflow: 'hidden' }}>

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react"
 import { ArrowLeft, Minus, Plus, ShoppingCart } from "lucide-react"
 import type { PageKey } from "../../../types/navigation"
 import { getProductById, type ProductApi } from "../../../api/productsAPI"
-import RelatedProducts from "./RelatedProducts"
 
 type MiniProduct = { id: string; name: string; price: number; image: string }
 
@@ -200,20 +199,6 @@ export default function ProductDetail({
           </div>
         </div>
       </div>
-
-      {/* ✅ Sản phẩm liên quan */}
-      {/* <div style={{ marginTop: 48 }}>
-        <RelatedProducts
-          title="Sản phẩm liên quan"
-          columns={4}
-          currencyFormatter={formatVND}
-          onProductClick={id => onNavigate?.("product-detail", { id })}
-          onQuickAdd={item => {
-            onAddToCart?.(item, 1)
-            setToast("Đã thêm nhanh")
-          }}
-        />
-      </div> */}
 
       {/* ✅ Toast hiển thị */}
       {toast && (
