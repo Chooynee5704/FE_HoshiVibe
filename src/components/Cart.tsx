@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { PageKey } from '../types/navigation'
 import { Trash2, Minus, Plus, ArrowLeft } from 'lucide-react'
 
-export interface CartItem {
+export type CartItem = {
   id: number
   name: string
   price: number

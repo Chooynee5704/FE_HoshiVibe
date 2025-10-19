@@ -10,29 +10,27 @@ import AdminLayout from './components/Dashboard/layout/AdminLayout'
 import FengShuiConsultation from './components/FengShuiConsultation'
 import CheckoutPage from './components/Payment/CheckoutPage'
 
+// ✅ Dùng đúng CartItem do Cart export để tránh “Two different types with this name exist”
+import type { CartItem as UICartItem } from './components/Cart'
+
 type IdLike = string | number
 type NavParams = { id?: IdLike }
-
-/** Đồng bộ với Cart: id là number */
-type CartItem = {
-  id: number
-  name: string
-  price: number
-  image: string
-  quantity: number
-}
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageKey>('home')
   const [isPageTransitioning, setIsPageTransitioning] = useState(false)
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
+
+  // ✅ dùng đúng type của Cart
+  const [cartItems, setCartItems] = useState<UICartItem[]>([])
   const [cartCount, setCartCount] = useState(0)
+
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
 
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname.replace(/^\/+/, '')
 
+      // /product-detail/<id>
       const productMatch = path.match(/^product-detail\/(.+)$/)
       if (productMatch) {
         setCurrentPage('product-detail')
@@ -62,7 +60,7 @@ function App() {
     setIsPageTransitioning(true)
 
     if (page === 'product-detail' && params?.id != null) {
-      setSelectedProductId(String(params.id))
+      setSelectedProductId(String(params.id)) // ✅ luôn là string trong state
     }
 
     setTimeout(() => {
@@ -80,7 +78,7 @@ function App() {
     }, 200)
   }
 
-  const calcCount = (items: CartItem[]) => items.reduce((s, i) => s + i.quantity, 0)
+  const calcCount = (items: UICartItem[]) => items.reduce((s, i) => s + i.quantity, 0)
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -111,24 +109,20 @@ function App() {
       case 'product-detail':
         return (
           <ProductDetail
-            // ép về string để khớp prop của ProductDetail
-            productId={selectedProductId ?? ''}
+            // ✅ truyền string (không còn string|undefined)
+            productId={selectedProductId || ''}
             onNavigate={handleNavigation}
             onAddToCart={(
               product: { id: IdLike; name: string; price: number; image: string },
               quantity: number
             ) => {
-              const pid = Number(product.id) // 👈 chuẩn hóa về number cho Cart
+              const pid = Number(product.id) // ✅ chuẩn hoá về number cho Cart
               setCartItems(prev => {
                 const idx = prev.findIndex(i => i.id === pid)
-                let next: CartItem[]
-                if (idx >= 0) {
-                  next = prev.map((i, k) =>
-                    k === idx ? { ...i, quantity: i.quantity + quantity } : i
-                  )
-                } else {
-                  next = [...prev, { id: pid, name: product.name, price: product.price, image: product.image, quantity }]
-                }
+                const next =
+                  idx >= 0
+                    ? prev.map((i, k) => (k === idx ? { ...i, quantity: i.quantity + quantity } : i))
+                    : [...prev, { id: pid, name: product.name, price: product.price, image: product.image, quantity }]
                 setCartCount(calcCount(next))
                 return next
               })
