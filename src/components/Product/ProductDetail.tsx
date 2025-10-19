@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ShoppingCart, Star, Heart, Share2, Minus, Plus, ArrowLeft, ArrowRight, ShieldCheck, RefreshCw, Truck } from 'lucide-react'
-import type { PageKey } from '../types/navigation'
+import type { PageKey } from '../../types/navigation'
 
 interface ProductDetailProps {
   onNavigate?: (page: PageKey) => void;

@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { useState } from 'react'
-import type { PageKey } from '../types/navigation'
+import type { PageKey } from '../../types/navigation'
 
 const pageStyle: CSSProperties = {
   backgroundColor: '#ffffff',

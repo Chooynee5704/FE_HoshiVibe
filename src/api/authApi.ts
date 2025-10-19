@@ -22,26 +22,49 @@ export type HvUser = {
   role: 'Admin' | 'Customer';
 };
 
-export async function loginApi(payload: LoginRequest) {
-  const { data } = await api.post<LoginResponse>("Authentication/login", payload);
+const TOKEN_KEY = "hv_token";
+const USER_KEY = "hv_user";
 
-  localStorage.setItem("hv_token", data.token);
-  localStorage.setItem("hv_user", JSON.stringify({
+/** Storage Helpers **/
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function saveAuth(data: LoginResponse) {
+  localStorage.setItem(TOKEN_KEY, data.token);
+  const user: HvUser = {
     user_Id: data.user_Id,
     email: data.email,
     account: data.account,
     role: data.role,
-  }));
-  return data;
+}
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  return user;
+}
+
+export function saveUser(user: HvUser) {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function clearAuth() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+/** ================== Public APIs ================== */
+
+export async function loginApi(payload: LoginRequest) {
+  const { data } = await api.post<LoginResponse>("Authentication/login", payload);
+  const user = saveAuth(data);
+  return {...data, user };
 }
 
 export function logoutApi() {
-  localStorage.removeItem("hv_token");
-  localStorage.removeItem("hv_user");
+  clearAuth();
 }
 
 export function isAuthenticated() {
-  return !!localStorage.getItem("hv_token");
+  return !!getToken();
 }
 
 export type RegisterRequest = {
@@ -73,5 +96,31 @@ export function getCurrentUser(): HvUser | null {
   } catch (err) {
     console.error("Lỗi khi đọc hv_user từ localStorage:", err);
     return null;
+  }
+}
+
+/** 
+ * checkLogin: trả về user nếu đã đăng nhập, ngược lại null
+ * (Dùng trong Header hoặc nơi nào cần)
+ */
+
+export function checkLogin(): HvUser | null {
+  return getCurrentUser();
+}
+
+/**
+ * Đăng ký listener để biết khi nào hv_user/hv_token thay đổi
+ * (hữu ích khi nhiều tab cùng mở)
+ */
+
+export function onAuthChange(callback: () => void) {
+  const handler = (event: StorageEvent) => {
+    if (event.key === TOKEN_KEY || event.key === USER_KEY) {
+      callback();
+    } 
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener("storage", handler);
+    };
   }
 }
