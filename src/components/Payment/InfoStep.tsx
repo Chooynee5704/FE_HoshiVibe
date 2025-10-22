@@ -5,7 +5,7 @@ import { Button, Card, Divider, Form, Input, Typography } from "antd"
 const { Title, Text } = Typography
 
 export type PaymentMethod = "vietqr" | "zalopay" | "momo" | "cod"
-type CartItem = { id:number; name:string; price:number; image:string; quantity:number }
+type CartItem = { id:string; name:string; price:number; image:string; quantity:number }
 
 /** Payment options with proper a11y (radiogroup) + Tailwind UI */
 function PaymentOptionsTailwind({
@@ -197,3 +197,4 @@ export default function InfoStep({
     </div>
   )
 }
+

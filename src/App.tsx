@@ -1,4 +1,4 @@
-﻿// src/App.tsx
+// src/App.tsx
 import { useState, useEffect } from 'react'
 import {
   Header, HeroSection, ProductCategories, ChatWidget, Footer,
@@ -96,13 +96,41 @@ function App() {
 
   const calcCount = (items: UICartItem[]) => items.reduce((s, i) => s + i.quantity, 0)
 
+  const handleAddToCart = (
+    product: { id: IdLike; name: string; price: number; image: string },
+    quantity: number = 1
+  ) => {
+    const baseId = product.id ?? `${product.name}-${product.price}`
+    const pid = String(baseId)
+    setCartItems(prev => {
+      const idx = prev.findIndex(i => i.id === pid)
+      const next =
+        idx >= 0
+          ? prev.map((item, itemIndex) =>
+              itemIndex === idx ? { ...item, quantity: item.quantity + quantity } : item
+            )
+          : [
+              ...prev,
+              {
+                id: pid,
+                name: product.name,
+                price: product.price,
+                image: product.image,
+                quantity
+              }
+            ]
+      setCartCount(calcCount(next))
+      return next
+    })
+  }
+
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'custom-design':
         return <CustomDesign />
 
       case 'products':
-        return <Products onNavigate={handleNavigation} />
+        return <Products onNavigate={handleNavigation} onAddToCart={handleAddToCart} />
 
       case 'membership':
         return <Membership />
@@ -120,7 +148,13 @@ function App() {
         return <Register onNavigate={handleNavigation} />
 
       case 'search':
-        return <Search onNavigate={handleNavigation} category={selectedCategory} />
+        return (
+          <Search
+            onNavigate={handleNavigation}
+            category={selectedCategory}
+            onAddToCart={handleAddToCart}
+          />
+        )
 
       case 'product-detail':
         return (
@@ -128,21 +162,7 @@ function App() {
             // ✅ truyền string (không còn string|undefined)
             productId={selectedProductId || ''}
             onNavigate={handleNavigation}
-            onAddToCart={(
-              product: { id: IdLike; name: string; price: number; image: string },
-              quantity: number
-            ) => {
-              const pid = Number(product.id) // ✅ chuẩn hoá về number cho Cart
-              setCartItems(prev => {
-                const idx = prev.findIndex(i => i.id === pid)
-                const next =
-                  idx >= 0
-                    ? prev.map((i, k) => (k === idx ? { ...i, quantity: i.quantity + quantity } : i))
-                    : [...prev, { id: pid, name: product.name, price: product.price, image: product.image, quantity }]
-                setCartCount(calcCount(next))
-                return next
-              })
-            }}
+            onAddToCart={handleAddToCart}
           />
         )
 
@@ -151,16 +171,16 @@ function App() {
           <Cart
             onNavigate={handleNavigation}
             items={cartItems}
-            onUpdateQty={(id: number, qty: number) => {
+            onUpdateQty={(id: string, qty: number) => {
               setCartItems(prev => {
-                const next = prev.map(i => (i.id === id ? { ...i, quantity: qty } : i))
+                const next = prev.map(item => (item.id === id ? { ...item, quantity: qty } : item))
                 setCartCount(calcCount(next))
                 return next
               })
             }}
-            onRemove={(id: number) => {
+            onRemove={(id: string) => {
               setCartItems(prev => {
-                const next = prev.filter(i => i.id !== id)
+                const next = prev.filter(item => item.id !== id)
                 setCartCount(calcCount(next))
                 return next
               })
@@ -203,3 +223,11 @@ function App() {
 }
 
 export default App
+
+
+
+
+
+
+
+

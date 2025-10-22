@@ -78,7 +78,39 @@ export default function FlashSaleSection() {
                   <div style={{ fontWeight: 900, color: "#000", fontSize: "1.125rem", letterSpacing: "-0.02em" }}>
                     {formatVND(priceNow)}
                   </div>
-                  <button style={{ border: "1px solid #ccc", background: "transparent", cursor: "pointer", padding: "8px", borderRadius: "0", transition: "all 0.3s ease" }}>
+                  <button 
+                    onClick={(e) => {
+                      // Add click animation
+                      e.currentTarget.style.transform = 'scale(0.8)'
+                      e.currentTarget.style.backgroundColor = '#f0f0f0'
+                      setTimeout(() => {
+                        e.currentTarget.style.transform = 'scale(1.1)'
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }, 100)
+                      setTimeout(() => {
+                        e.currentTarget.style.transform = 'scale(1)'
+                      }, 200)
+                      console.log('Added to cart:', p.name)
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f8f8f8'
+                      e.currentTarget.style.transform = 'scale(1.05)'
+                      e.currentTarget.style.borderColor = '#000000'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                      e.currentTarget.style.transform = 'scale(1)'
+                      e.currentTarget.style.borderColor = '#ccc'
+                    }}
+                    style={{ 
+                      border: "1px solid #ccc", 
+                      background: "transparent", 
+                      cursor: "pointer", 
+                      padding: "8px", 
+                      borderRadius: "0", 
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" 
+                    }}
+                  >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="9" cy="20" r="1.75" />
                       <circle cx="18" cy="20" r="1.75" />

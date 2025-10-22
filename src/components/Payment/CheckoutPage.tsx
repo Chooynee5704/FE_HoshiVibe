@@ -6,7 +6,7 @@ import InfoStep from "./InfoStep"
 import type { PaymentMethod } from "./InfoStep"
 import PaymentStep from "./PaymentStep"
 
-type CartItem = { id:number; name:string; price:number; image:string; quantity:number }
+type CartItem = { id:string; name:string; price:number; image:string; quantity:number }
 
 type Props = {
   onNavigate?: (p: PageKey) => void
@@ -60,3 +60,4 @@ export default function CheckoutPage({
     </div>
   )
 }
+

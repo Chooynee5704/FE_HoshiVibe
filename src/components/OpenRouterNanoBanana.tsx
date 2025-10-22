@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { Upload, Download, FileImage, Loader2, AlertCircle } from 'lucide-react';
 
 interface OpenRouterNanoBananaProps {

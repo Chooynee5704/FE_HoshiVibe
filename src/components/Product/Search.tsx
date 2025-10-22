@@ -4,14 +4,17 @@ import { useState, useEffect, useRef } from 'react'
 import { ShoppingCart, Star } from 'lucide-react'
 import type { PageKey } from '../../types/navigation'
 import { searchProducts, type ProductApi } from '../../api/productsAPI'
+import FlyAnimation from '../FlyAnimation'
+import { useFlyAnimation } from '../../hooks/useFlyAnimation'
 
 interface SearchProps {
   onNavigate?: (page: PageKey, params?: { id?: string | number }) => void;
   searchQuery?: string;
   category?: string;
+  onAddToCart?: (product: { id: string | number; name: string; price: number; image: string }, quantity?: number) => void;
 }
 
-const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) => {
+const Search = ({ onNavigate, searchQuery = '', category = '', onAddToCart }: SearchProps) => {
   const [isVisible, setIsVisible] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedCategory, setSelectedCategory] = useState(category || 'ALL')
@@ -20,6 +23,7 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState<ProductApi[]>([])
   const sectionRef = useRef<HTMLDivElement | null>(null)
+  const { animationState, triggerFlyAnimation, completeAnimation } = useFlyAnimation()
 
   // Hiệu ứng hiển thị
   useEffect(() => {
@@ -66,14 +70,15 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
 
   // Map BE -> UI
   const uiProducts = (products || []).map(p => ({
-    id: p.product_Id, // BE trả product_Id (string)
+    id: String(p.product_Id ?? (p as any)?.id ?? ''), // BE trả product_Id (string)
     name: p.name,
-    price: p.price,
+    price: (typeof p.price === 'number' ? p.price : Number(p.price) || 0),
     rating: 5,
     reviews: 0,
     image: p.imageUrl || p.imageURL || '/placeholder.png',
     category: normalizeCategory(p.category),
     sale: p.status === 'ready-to-publish', // tuỳ business rule
+    status: p.status
   }))
 
   const categories = [
@@ -110,10 +115,6 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
     if (sortBy === 'Đánh giá cao nhất') return (b.reviews ?? 0) - (a.reviews ?? 0)
     return 0
   })
-
-  const handleAddToCart = (productId: string) => {
-    console.log(`Added product ${productId} to cart`)
-  }
 
   const handleCategoryClick = (categoryId: string) => {
     setSelectedCategory(categoryId)
@@ -158,8 +159,8 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
           padding: '1.5rem 2rem',
           borderBottom: '1px solid #e5e7eb',
           position: 'sticky',
-          top: 0,
-          zIndex: 100,
+          top: '4rem', // Account for header height
+          zIndex: 999,
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
         }}>
           <div style={{
@@ -356,13 +357,47 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
 
                   <button
                     className="add-to-cart-btn"
-                    onClick={(e) => { e.stopPropagation(); handleAddToCart(product.id) }}
+                    onClick={(e) => { 
+                      e.stopPropagation()
+                      // Add click animation
+                      e.currentTarget.style.transform = 'scale(0.8)'
+                      e.currentTarget.style.backgroundColor = '#333333'
+                      setTimeout(() => {
+                        e.currentTarget.style.transform = 'scale(1.1)'
+                        e.currentTarget.style.backgroundColor = '#000000'
+                      }, 100)
+                      setTimeout(() => {
+                        e.currentTarget.style.transform = 'scale(1)'
+                      }, 200)
+                      // Trigger fly animation
+                      triggerFlyAnimation(e)
+                      onAddToCart?.(
+                        {
+                          id: product.id,
+                          name: product.name,
+                          price: product.price,
+                          image: product.image
+                        },
+                        1
+                      )
+                    }}
                     style={{
                       position: 'absolute', bottom: '1.75rem', right: '1.75rem',
                       width: '48px', height: '48px', borderRadius: '50%',
                       backgroundColor: '#000000', border: 'none', color: '#ffffff',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
+                      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#333333'
+                      e.currentTarget.style.transform = 'scale(1.1)'
+                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.3)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#000000'
+                      e.currentTarget.style.transform = 'scale(1)'
+                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.2)'
                     }}
                   >
                     <ShoppingCart size={20} />
@@ -420,8 +455,24 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
           </div>
         </div>
       </div>
+      
+      {/* Fly Animation */}
+      {animationState.isAnimating && animationState.startPosition && animationState.endPosition && (
+        <FlyAnimation
+          startPosition={animationState.startPosition}
+          endPosition={animationState.endPosition}
+          onComplete={completeAnimation}
+        />
+      )}
     </>
   )
 }
 
 export default Search
+
+
+
+
+
+
+

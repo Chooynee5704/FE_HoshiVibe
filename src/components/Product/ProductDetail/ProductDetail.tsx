@@ -5,6 +5,8 @@ import { useEffect, useState } from "react"
 import { ArrowLeft, Minus, Plus, ShoppingCart } from "lucide-react"
 import type { PageKey } from "../../../types/navigation"
 import { getProductById, type ProductApi } from "../../../api/productsAPI"
+import FlyAnimation from '../../FlyAnimation'
+import { useFlyAnimation } from '../../../hooks/useFlyAnimation'
 
 type MiniProduct = { id: string; name: string; price: number; image: string }
 
@@ -27,6 +29,7 @@ export default function ProductDetail({
   const [data, setData] = useState<ProductApi | null>(null)
   const [qty, setQty] = useState(1)
   const [toast, setToast] = useState<string | null>(null) // ✅ thêm state toast
+  const { animationState, triggerFlyAnimation, completeAnimation } = useFlyAnimation()
 
   useEffect(() => {
     let alive = true
@@ -170,7 +173,9 @@ export default function ProductDetail({
 
           {/* Thêm vào giỏ */}
           <button
-            onClick={() => {
+            onClick={(e) => {
+              // Trigger fly animation
+              triggerFlyAnimation(e)
               onAddToCart?.(mini, qty)
               setToast("Đã thêm vào giỏ hàng")
             }}
@@ -217,6 +222,15 @@ export default function ProductDetail({
         >
           {toast}
         </div>
+      )}
+      
+      {/* Fly Animation */}
+      {animationState.isAnimating && animationState.startPosition && animationState.endPosition && (
+        <FlyAnimation
+          startPosition={animationState.startPosition}
+          endPosition={animationState.endPosition}
+          onComplete={completeAnimation}
+        />
       )}
     </div>
   )

@@ -48,12 +48,12 @@ const CustomDesign = () => {
 
   // Mock data for accessories grid with image paths
   const accessories: Accessory[] = [
-    { id: 1, name: 'Phụ kiện 1', image: '/accessories/phukien1.jpg' },
-    { id: 2, name: 'Phụ kiện 2', image: '/accessories/phukien2.jpg' },
-    { id: 3, name: 'Phụ kiện 3', image: '/accessories/phukien3.jpg' },
-    { id: 4, name: 'Phụ kiện 4', image: '/accessories/phukien4.jpg' },
-    { id: 5, name: 'Phụ kiện 5', image: '/accessories/phukien5.jpg' },
-    { id: 6, name: 'Phụ kiện 6', image: '/accessories/phukien6.jpg' },
+    { id: 1, name: 'Accessory 1', image: '/accessories/phukien1.jpg' },
+    { id: 2, name: 'Accessory 2', image: '/accessories/phukien2.jpg' },
+    { id: 3, name: 'Accessory 3', image: '/accessories/phukien3.jpg' },
+    { id: 4, name: 'Accessory 4', image: '/accessories/phukien4.jpg' },
+    { id: 5, name: 'Accessory 5', image: '/accessories/phukien5.jpg' },
+    { id: 6, name: 'Accessory 6', image: '/accessories/phukien6.jpg' },
   ]
 
   const resetDesign = () => {
@@ -302,14 +302,16 @@ const CustomDesign = () => {
           textAlign: 'center', 
           marginBottom: '2rem'
         }}>
-          <h1 style={{ 
-            color: 'black', 
-            fontSize: '1.75rem', 
-            fontWeight: '700',
-            margin: 0,
-            letterSpacing: '0.5px'
-          }}>
-            TÙY CHỈNH TRANG SỨC CỦA BẠN
+          <h1
+            style={{
+              color: 'black',
+              fontSize: '1.75rem',
+              fontWeight: '700',
+              margin: 0,
+              letterSpacing: '0.5px'
+            }}
+          >
+            CUSTOMIZE YOUR JEWELRY
           </h1>
         </div>
 
@@ -380,7 +382,7 @@ const CustomDesign = () => {
               marginBottom: '2rem',
               textAlign: 'center'
             }}>
-              Phụ kiện
+              Accessories
             </h2>
 
             {/* Search Bar */}
@@ -390,7 +392,7 @@ const CustomDesign = () => {
             }}>
               <input
                 type="text"
-                placeholder="Tìm kiếm phụ kiện"
+                placeholder="Search accessories"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
@@ -541,7 +543,7 @@ const CustomDesign = () => {
                 left: '2.5rem',
                 zIndex: 10
               }}>
-                {enhancedImageUrl ? 'Thiết kế đã tối ưu bởi AI' : 'Thiết kế gốc'}
+                {enhancedImageUrl ? 'Design enhanced by AI. Download or reset to continue editing.' : 'Original Design'}
               </h2>
 
               {/* Design Canvas / Stage */}
@@ -609,7 +611,7 @@ const CustomDesign = () => {
                     {/* Background template image */}
                     <img
                       src="/accessories/mauthietke.jpg"
-                      alt="Mẫu thiết kế"
+                      alt="Design Template"
                       style={{
                         width: '100%',
                         height: '100%',
@@ -639,7 +641,7 @@ const CustomDesign = () => {
                               transform: translate(-50%, -50%);
                               z-index: 1;
                             ">
-                              MẪU THIẾT KẾ
+                              DESIGN TEMPLATE
                             </div>
                           `
                         }
@@ -704,7 +706,7 @@ const CustomDesign = () => {
                           fontWeight: '600',
                           textAlign: 'center'
                         }}>
-                          Thả phụ kiện vào đây
+                          Drop accessories here
                         </div>
                       </div>
                     )}
@@ -756,12 +758,12 @@ const CustomDesign = () => {
                     {isProcessing ? (
                       <>
                         <LoadingOutlined style={{ fontSize: '1rem' }} />
-                        Đang xử lý...
+                        ang x l...
                       </>
                     ) : (
                       <>
                         <RobotOutlined style={{ fontSize: '1rem' }} />
-                        Tối ưu với AI
+                        Enhance with AI
                       </>
                     )}
                   </button>
@@ -796,7 +798,7 @@ const CustomDesign = () => {
                       }}
                     >
                       <DownloadOutlined style={{ fontSize: '1rem' }} />
-                      Tải xuống
+                      Download
                     </button>
 
                     <button
@@ -826,12 +828,12 @@ const CustomDesign = () => {
                       }}
                     >
                       <ReloadOutlined style={{ fontSize: '1rem' }} />
-                      Làm lại
+                      Reset
                     </button>
                   </>
                 )}
 
-                {/* Cart Button — always visible */}
+                {/* Cart Button  always visible */}
                 <button style={{
                   backgroundColor: '#111827',
                   color: 'white',
@@ -857,7 +859,7 @@ const CustomDesign = () => {
                 }}
                 >
                   <ShoppingCartOutlined style={{ fontSize: '1rem' }} />
-                  MUA HÀNG
+                  CHECKOUT
                 </button>
               </div>
             </div>
@@ -880,7 +882,7 @@ const CustomDesign = () => {
             fontWeight: '500',
             zIndex: 1000
           }}>
-            Đã chọn: {selectedItem.name}
+            Selected: {selectedItem.name}
           </div>
         )}
 
@@ -893,13 +895,13 @@ const CustomDesign = () => {
         }}>
           {!enhancedImageUrl ? (
             <>
-              <p>Kéo và thả phụ kiện từ bảng bên trái lên thiết kế của bạn, sau đó nhấn "Tối ưu với AI"</p>
+              <p>Drag accessories from the left panel onto your design, then press "Enhance with AI".</p>
               <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                💡 Mẹo: Nhấp đúp vào phụ kiện đã đặt để xóa
+                Tip: Double-click an accessory on the canvas to remove it.
               </p>
             </>
           ) : (
-            <p>Thiết kế đã được tối ưu và hiển thị trực tiếp trên mẫu. Bạn có thể tải xuống hoặc làm lại để chỉnh tiếp.</p>
+            <p>Design enhanced by AI. Download or reset to continue editing.</p>
           )}
         </div>
       </div>
@@ -908,3 +910,4 @@ const CustomDesign = () => {
 }
 
 export default CustomDesign
+

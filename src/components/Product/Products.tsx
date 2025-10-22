@@ -2,6 +2,8 @@ import type { CSSProperties } from 'react'
 import { useState, useEffect } from 'react'
 import type { PageKey } from '../../types/navigation'
 import { searchProducts, type ProductApi } from '../../api/productsAPI'
+import FlyAnimation from '../FlyAnimation'
+import { useFlyAnimation } from '../../hooks/useFlyAnimation'
 
 const pageStyle: CSSProperties = {
   backgroundColor: '#ffffff',
@@ -53,13 +55,15 @@ const categories = [
 
 interface ProductsProps {
   onNavigate?: (page: PageKey, params?: { category?: string; id?: string | number }) => void;
+  onAddToCart?: (product: { id: string | number; name: string; price: number; image: string }, quantity?: number) => void;
 }
 
-const Products = ({ onNavigate }: ProductsProps) => {
+const Products = ({ onNavigate, onAddToCart }: ProductsProps) => {
   const [hoveredCard, setHoveredCard] = useState<string | number | null>(null)
   const [hoveredCategory, setHoveredCategory] = useState<number | null>(null)
   const [products, setProducts] = useState<ProductApi[]>([])
   const [loading, setLoading] = useState(false)
+  const { animationState, triggerFlyAnimation, completeAnimation } = useFlyAnimation()
 
   // Fetch products from API
   useEffect(() => {
@@ -82,7 +86,7 @@ const Products = ({ onNavigate }: ProductsProps) => {
   const apiProducts = (products || []).map(p => ({
     id: p.product_Id,
     name: p.name,
-    price: p.price,
+    price: typeof p.price === 'number' ? p.price : Number(p.price) || 0,
     image: p.imageUrl || p.imageURL || '/placeholder.png',
     category: p.category,
     status: p.status,
@@ -303,7 +307,7 @@ const Products = ({ onNavigate }: ProductsProps) => {
               finalFlashProducts.map((p, idx) => {
                 const flashDiscounts = [25, 30, 25, 28, 23]
                 const discount = flashDiscounts[idx % flashDiscounts.length]
-                const priceNow = p.price || 0
+                const priceNow = typeof p.price === 'number' ? p.price : Number(p.price) || 0
                 const isHovered = hoveredCard === p.id
               
                 return (
@@ -362,20 +366,50 @@ const Products = ({ onNavigate }: ProductsProps) => {
                       <div style={{ fontWeight: 900, color: '#000000', fontSize: '1.125rem', letterSpacing: '-0.02em' }}>
                         {formatVND(priceNow)}
                       </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          // Handle add to cart logic here
-                          console.log('Added to cart:', p.name)
-                        }}
-                        style={{ 
-                        border: '1px solid #cccccc', 
-                        background: 'transparent', 
-                        cursor: 'pointer', 
-                        padding: '8px',
-                        borderRadius: '0',
-                        transition: 'all 0.3s ease'
-                      }}>
+                       <button 
+                         onClick={(e) => {
+                           e.stopPropagation()
+                           // Add click animation
+                           e.currentTarget.style.transform = 'scale(0.8)'
+                           e.currentTarget.style.backgroundColor = '#f0f0f0'
+                           setTimeout(() => {
+                             e.currentTarget.style.transform = 'scale(1.1)'
+                             e.currentTarget.style.backgroundColor = 'transparent'
+                           }, 100)
+                           setTimeout(() => {
+                             e.currentTarget.style.transform = 'scale(1)'
+                           }, 200)
+                           // Trigger fly animation
+                           triggerFlyAnimation(e)
+                           // Add to cart state
+                           onAddToCart?.(
+                             {
+                               id: String(p.id),
+                               name: p.name,
+                               price: priceNow,
+                               image: p.image
+                             },
+                             1
+                           )
+                         }}
+                         style={{ 
+                         border: '1px solid #cccccc', 
+                         background: 'transparent', 
+                         cursor: 'pointer', 
+                         padding: '8px',
+                         borderRadius: '0',
+                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                       }}
+                       onMouseEnter={(e) => {
+                         e.currentTarget.style.backgroundColor = '#f8f8f8'
+                         e.currentTarget.style.transform = 'scale(1.05)'
+                         e.currentTarget.style.borderColor = '#000000'
+                       }}
+                       onMouseLeave={(e) => {
+                         e.currentTarget.style.backgroundColor = 'transparent'
+                         e.currentTarget.style.transform = 'scale(1)'
+                         e.currentTarget.style.borderColor = '#cccccc'
+                       }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="9" cy="20" r="1.75" />
                           <circle cx="18" cy="20" r="1.75" />
@@ -444,7 +478,7 @@ const Products = ({ onNavigate }: ProductsProps) => {
               finalSuggestionProducts.map((p, idx) => {
                 const suggestDiscounts = [25, 35, 40, 30, 10]
                 const discount = suggestDiscounts[idx % suggestDiscounts.length]
-                const priceNow = p.price || 0
+                const priceNow = typeof p.price === 'number' ? p.price : Number(p.price) || 0
                 const isHovered = hoveredCard === p.id
               
               return (
@@ -503,20 +537,50 @@ const Products = ({ onNavigate }: ProductsProps) => {
                       <div style={{ fontWeight: 900, color: '#000000', fontSize: '1.125rem', letterSpacing: '-0.02em' }}>
                         {formatVND(priceNow)}
                       </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          // Handle add to cart logic here
-                          console.log('Added to cart:', p.name)
-                        }}
-                        style={{ 
-                        border: '1px solid #cccccc', 
-                        background: 'transparent', 
-                        cursor: 'pointer', 
-                        padding: '8px',
-                        borderRadius: '0',
-                        transition: 'all 0.3s ease'
-                      }}>
+                       <button 
+                         onClick={(e) => {
+                           e.stopPropagation()
+                           // Add click animation
+                           e.currentTarget.style.transform = 'scale(0.8)'
+                           e.currentTarget.style.backgroundColor = '#f0f0f0'
+                           setTimeout(() => {
+                             e.currentTarget.style.transform = 'scale(1.1)'
+                             e.currentTarget.style.backgroundColor = 'transparent'
+                           }, 100)
+                           setTimeout(() => {
+                             e.currentTarget.style.transform = 'scale(1)'
+                           }, 200)
+                           // Trigger fly animation
+                           triggerFlyAnimation(e)
+                           // Add to cart state
+                           onAddToCart?.(
+                             {
+                               id: String(p.id),
+                               name: p.name,
+                               price: priceNow,
+                               image: p.image
+                             },
+                             1
+                           )
+                         }}
+                         style={{ 
+                         border: '1px solid #cccccc', 
+                         background: 'transparent', 
+                         cursor: 'pointer', 
+                         padding: '8px',
+                         borderRadius: '0',
+                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                       }}
+                       onMouseEnter={(e) => {
+                         e.currentTarget.style.backgroundColor = '#f8f8f8'
+                         e.currentTarget.style.transform = 'scale(1.05)'
+                         e.currentTarget.style.borderColor = '#000000'
+                       }}
+                       onMouseLeave={(e) => {
+                         e.currentTarget.style.backgroundColor = 'transparent'
+                         e.currentTarget.style.transform = 'scale(1)'
+                         e.currentTarget.style.borderColor = '#cccccc'
+                       }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="9" cy="20" r="1.75" />
                           <circle cx="18" cy="20" r="1.75" />
@@ -546,8 +610,18 @@ const Products = ({ onNavigate }: ProductsProps) => {
           </div>
         </div>
       </div>
+      
+      {/* Fly Animation */}
+      {animationState.isAnimating && animationState.startPosition && animationState.endPosition && (
+        <FlyAnimation
+          startPosition={animationState.startPosition}
+          endPosition={animationState.endPosition}
+          onComplete={completeAnimation}
+        />
+      )}
     </main>
   )
 }
 
 export default Products
+

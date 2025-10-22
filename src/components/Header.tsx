@@ -1,4 +1,5 @@
 import { SearchOutlined, ShoppingCartOutlined, UserOutlined } from '@ant-design/icons'
+import { useState, useEffect } from 'react'
 import type { PageKey } from '../types/navigation'
 
 interface HeaderProps {
@@ -8,6 +9,19 @@ interface HeaderProps {
 }
 
 const Header = ({ onNavigate, currentPage = 'home', cartCount = 0 }: HeaderProps) => {
+  const [cartAnimation, setCartAnimation] = useState(false)
+
+  // Listen for cart animation events
+  useEffect(() => {
+    const handleCartAnimation = () => {
+      setCartAnimation(true)
+      setTimeout(() => setCartAnimation(false), 600)
+    }
+
+    window.addEventListener('cartItemAdded', handleCartAnimation)
+    return () => window.removeEventListener('cartItemAdded', handleCartAnimation)
+  }, [])
+
   const handleNavigation = (page: PageKey) => {
     if (onNavigate) {
       onNavigate(page);
@@ -15,7 +29,15 @@ const Header = ({ onNavigate, currentPage = 'home', cartCount = 0 }: HeaderProps
   };
 
   return (
-    <header style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)', borderBottom: '1px solid #e5e7eb' }}>
+    <header style={{ 
+      backgroundColor: 'white', 
+      boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)', 
+      borderBottom: '1px solid #e5e7eb',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000,
+      width: '100%'
+    }}>
       <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '4rem' }}>
           {/* Logo */}
@@ -195,7 +217,13 @@ const Header = ({ onNavigate, currentPage = 'home', cartCount = 0 }: HeaderProps
             />
             <div id="nav-cart-icon" style={{ position: 'relative' }} onClick={() => handleNavigation('cart')}>
               <ShoppingCartOutlined 
-                style={{ fontSize: '1.25rem', color: '#6b7280', cursor: 'pointer', transition: 'color 0.3s ease' }} 
+                style={{ 
+                  fontSize: '1.25rem', 
+                  color: '#6b7280', 
+                  cursor: 'pointer', 
+                  transition: 'color 0.3s ease',
+                  transform: cartAnimation ? 'scale(1.2)' : 'scale(1)',
+                }} 
                 onMouseEnter={(e) => e.currentTarget.style.color = 'black'}
                 onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
               />
@@ -217,7 +245,9 @@ const Header = ({ onNavigate, currentPage = 'home', cartCount = 0 }: HeaderProps
                     fontSize: '10px',
                     fontWeight: 700,
                     padding: '0 4px',
-                    lineHeight: 1
+                    lineHeight: 1,
+                    transform: cartAnimation ? 'scale(1.3)' : 'scale(1)',
+                    transition: 'all 0.3s ease'
                   }}
                 >
                   {cartCount}

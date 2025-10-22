@@ -3,7 +3,7 @@ import type { PageKey } from '../types/navigation'
 import { Trash2, Minus, Plus, ArrowLeft } from 'lucide-react'
 
 export type CartItem = {
-  id: number
+  id: string
   name: string
   price: number
   image: string
@@ -13,8 +13,8 @@ export type CartItem = {
 interface CartProps {
   onNavigate?: (page: PageKey) => void
   items: CartItem[]
-  onUpdateQty: (id: number, qty: number) => void
-  onRemove: (id: number) => void
+  onUpdateQty: (id: string, qty: number) => void
+  onRemove: (id: string) => void
   onCheckout?: () => void
 }
 
@@ -81,22 +81,26 @@ const Cart = ({ onNavigate, items, onUpdateQty, onRemove, /*onCheckout*/ }: Cart
             {items.length === 0 && (
               <div style={{ padding:24, textAlign:'center', color:'#6b7280' }}>Giỏ hàng trống</div>
             )}
-            {items.map(item => (
-              <div key={item.id} className="cart__row">
-                <img src={item.image} alt={item.name} className="cart__img"/>
-                <div>
-                  <div className="cart__name">{item.name}</div>
-                  <div style={{ color:'#6b7280', fontSize:13 }}>Mã SP: HV-{item.id.toString().padStart(4,'0')}</div>
+            {items.map(item => {
+              const rawId = String(item.id ?? '')
+              const displayId = rawId.length <= 4 ? rawId.padStart(4, '0') : rawId
+              return (
+                <div key={rawId} className="cart__row">
+                  <img src={item.image} alt={item.name} className="cart__img"/>
+                  <div>
+                    <div className="cart__name">{item.name}</div>
+                    <div style={{ color:'#6b7280', fontSize:13 }}>MA? SP: HV-{displayId}</div>
+                  </div>
+                  <div style={{ fontWeight:700 }}>{formatVND(item.price)}</div>
+                  <div className="cart__qty">
+                    <button className="cart__btn" onClick={() => onUpdateQty(item.id, Math.max(1, item.quantity - 1))}><Minus size={14}/></button>
+                    <input value={item.quantity} onChange={(e)=> onUpdateQty(item.id, Math.max(1, parseInt(e.target.value)||1))} style={{ width:48, height:32, textAlign:'center', border:'1px solid #e5e7eb', borderRadius:8 }}/>
+                    <button className="cart__btn" onClick={() => onUpdateQty(item.id, item.quantity + 1)}><Plus size={14}/></button>
+                  </div>
+                  <button className="cart__btn" onClick={() => onRemove(item.id)} aria-label="XoA?"><Trash2 size={16}/></button>
                 </div>
-                <div style={{ fontWeight:700 }}>{formatVND(item.price)}</div>
-                <div className="cart__qty">
-                  <button className="cart__btn" onClick={() => onUpdateQty(item.id, Math.max(1, item.quantity - 1))}><Minus size={14}/></button>
-                  <input value={item.quantity} onChange={(e)=> onUpdateQty(item.id, Math.max(1, parseInt(e.target.value)||1))} style={{ width:48, height:32, textAlign:'center', border:'1px solid #e5e7eb', borderRadius:8 }}/>
-                  <button className="cart__btn" onClick={() => onUpdateQty(item.id, item.quantity + 1)}><Plus size={14}/></button>
-                </div>
-                <button className="cart__btn" onClick={() => onRemove(item.id)} aria-label="Xoá"><Trash2 size={16}/></button>
-              </div>
-            ))}
+              )
+            })}
             {items.length > 0 && (
               <div className="cart__sum">
                 <textarea placeholder="Ghi chú cho cửa hàng (tuỳ chọn)" value={note} onChange={(e)=> setNote(e.target.value)} style={{ width:'100%', minHeight:76, border:'1px solid #e5e7eb', borderRadius:12, padding:10 }}/>
@@ -150,5 +154,11 @@ const Cart = ({ onNavigate, items, onUpdateQty, onRemove, /*onCheckout*/ }: Cart
 }
 
 export default Cart
+
+
+
+
+
+
 
 
