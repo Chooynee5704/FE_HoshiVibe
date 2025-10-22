@@ -14,7 +14,7 @@ interface SearchProps {
 const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) => {
   const [isVisible, setIsVisible] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [selectedCategory, setSelectedCategory] = useState(category)
+  const [selectedCategory, setSelectedCategory] = useState(category || 'ALL')
   const [sortBy, setSortBy] = useState('default')
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -34,12 +34,18 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
   // Chuẩn hoá category BE -> label UI
   const normalizeCategory = (raw?: string) => {
     const t = (raw || '').toLowerCase()
-    if (t.includes('neck')) return 'VÒNG CỔ'
     if (t.includes('bracelet') || t.includes('vòng tay')) return 'VÒNG TAY'
+    if (t.includes('necklace') || t.includes('dây chuyền') || t.includes('neck')) return 'DÂY CHUYỀN'
     if (t.includes('ring') || t.includes('nhẫn')) return 'NHẪN'
-    if (t.includes('stone') || t.includes('đá')) return 'ĐÁ'
-    return (raw || '').toUpperCase()
+    if (t.includes('accessory') || t.includes('phụ kiện') || t.includes('stone') || t.includes('đá')) return 'PHỤ KIỆN KHÁC'
+    if (t.includes('new') || t.includes('mới') || t.includes('latest')) return 'SẢN PHẨM MỚI'
+    return 'PHỤ KIỆN KHÁC' // Default fallback
   }
+
+  // Cập nhật selectedCategory khi category prop thay đổi
+  useEffect(() => {
+    setSelectedCategory(category || 'ALL')
+  }, [category])
 
   // Tải danh sách sản phẩm (tất cả)
   useEffect(() => {
@@ -71,12 +77,12 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
   }))
 
   const categories = [
-    { id: 'ALL', label: 'TẤT CẢ' },
     { id: 'VÒNG TAY', label: 'VÒNG TAY' },
-    { id: 'VÒNG CỔ', label: 'VÒNG CỔ' },
+    { id: 'DÂY CHUYỀN', label: 'DÂY CHUYỀN' },
     { id: 'NHẪN', label: 'NHẪN' },
-    { id: 'ĐÁ', label: 'ĐÁ' },
-    { id: 'ƯU ĐÃI', label: 'ƯU ĐÃI' }
+    { id: 'PHỤ KIỆN KHÁC', label: 'PHỤ KIỆN KHÁC' },
+    { id: 'SẢN PHẨM MỚI', label: 'SẢN PHẨM MỚI' },
+    { id: 'ALL', label: 'TẤT CẢ' }
   ]
 
   const sortOptions = ['Mặc định', 'Giá tăng dần', 'Giá giảm dần', 'Đánh giá cao nhất', 'Mới nhất']
@@ -86,8 +92,8 @@ const Search = ({ onNavigate, searchQuery = '', category = '' }: SearchProps) =>
     const byCategory =
       !selectedCategory || selectedCategory === 'ALL'
         ? true
-        : selectedCategory === 'ƯU ĐÃI'
-          ? !!p.sale
+        : selectedCategory === 'SẢN PHẨM MỚI'
+          ? p.status === 'Active' // Giả sử sản phẩm mới có status Active
           : p.category === selectedCategory
 
     const byKeyword = searchQuery

@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { LeftOutlined, RightOutlined } from '@ant-design/icons'
+import type { PageKey } from '../../types/navigation'
 
-const ProductCategories = () => {
+interface ProductCategoriesProps {
+  onNavigate?: (page: PageKey, params?: { category?: string }) => void;
+}
+
+const ProductCategories = ({ onNavigate }: ProductCategoriesProps) => {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isVisible, setIsVisible] = useState(false)
   const sectionRef = useRef<HTMLElement>(null)
@@ -34,7 +39,8 @@ const ProductCategories = () => {
       description: 'Bảo vệ và mang lại bình an',
       image: '/product_categories/vongtay.png',
       itemCount: '140+ sản phẩm',
-      gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+      gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      category: 'VÒNG TAY'
     },
     {
       id: 2,
@@ -42,7 +48,8 @@ const ProductCategories = () => {
       description: 'Phong cách hiện đại, ý nghĩa sâu sắc',
       image: '/product_categories/daychuyen.jpg',
       itemCount: '95+ sản phẩm',
-      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      category: 'DÂY CHUYỀN'
     },
     {
       id: 3,
@@ -50,23 +57,26 @@ const ProductCategories = () => {
       description: 'Tăng cường năng lượng tích cực',
       image: '/product_categories/nhanphongthuy.png',
       itemCount: '85+ sản phẩm',
-      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      category: 'NHẪN'
     },
     {
       id: 4,
-      name: 'BÔNG TAI',
-      description: 'Sắc đẹp toàn vẹnvẹn',
-      image: '/product_categories/bongtai.png',
-      itemCount: '25+ sản phẩm',
-      gradient: 'linear-gradient(135deg,rgb(93, 150, 161) 0%,rgb(63, 146, 230) 100%)'
-    },
-    {
-      id: 5,
       name: 'PHỤ KIỆN KHÁC',
       description: 'Đa dạng phong cách, cá tính riêng',
       image: '/product_categories/phukienkhac.png',
       itemCount: '200+ sản phẩm',
-      gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+      gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+      category: 'PHỤ KIỆN KHÁC'
+    },
+    {
+      id: 5,
+      name: 'SẢN PHẨM MỚI',
+      description: 'Những sản phẩm mới nhất',
+      image: '/accessories/mauthietke.jpg',
+      itemCount: '50+ sản phẩm',
+      gradient: 'linear-gradient(135deg,rgb(93, 150, 161) 0%,rgb(63, 146, 230) 100%)',
+      category: 'SẢN PHẨM MỚI'
     }
   ]
 
@@ -83,6 +93,10 @@ const ProductCategories = () => {
 
   const goToSlide = (index: number) => {
     setCurrentSlide(Math.min(index, maxSlide))
+  }
+
+  const handleCategoryClick = (category: string) => {
+    onNavigate?.('search', { category })
   }
 
   return (
@@ -201,6 +215,7 @@ const ProductCategories = () => {
                   boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
                   animationDelay: isVisible ? `${index * 0.1 + 0.3}s` : '0s'
                 }}
+                onClick={() => handleCategoryClick(category.category)}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-0.5rem) scale(1.02)'
                   e.currentTarget.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.15)'
@@ -316,6 +331,7 @@ const ProductCategories = () => {
         <div className={isVisible ? 'animate-on-scroll animate' : 'animate-on-scroll'} style={{ textAlign: 'center', marginTop: '3rem' }}>
           <button 
             className={isVisible ? 'btn-primary animate-scale-in delay-600' : ''}
+            onClick={() => onNavigate?.('search', { category: 'ALL' })}
             style={{
               backgroundColor: '#111827',
               color: 'white',

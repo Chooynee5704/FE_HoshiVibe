@@ -14,7 +14,7 @@ import CheckoutPage from './components/Payment/CheckoutPage'
 import type { CartItem as UICartItem } from './components/Cart'
 
 type IdLike = string | number
-type NavParams = { id?: IdLike }
+type NavParams = { id?: IdLike; category?: string }
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageKey>('home')
@@ -25,6 +25,7 @@ function App() {
   const [cartCount, setCartCount] = useState(0)
 
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string>('')
 
   useEffect(() => {
     const handlePopState = () => {
@@ -38,6 +39,16 @@ function App() {
         return
       }
 
+      // /search?category=<category>
+      const searchMatch = path.match(/^search/)
+      if (searchMatch) {
+        setCurrentPage('search')
+        const urlParams = new URLSearchParams(window.location.search)
+        const category = urlParams.get('category') || ''
+        setSelectedCategory(category)
+        return
+      }
+
       if (path === 'custom-design') setCurrentPage('custom-design')
       else if (path === 'products') setCurrentPage('products')
       else if (path === 'membership') setCurrentPage('membership')
@@ -45,7 +56,6 @@ function App() {
       else if (path === 'admin') setCurrentPage('admin')
       else if (path === 'login') setCurrentPage('login')
       else if (path === 'register') setCurrentPage('register')
-      else if (path === 'search') setCurrentPage('search')
       else if (path === 'cart') setCurrentPage('cart')
       else if (path === 'checkout') setCurrentPage('checkout')
       else setCurrentPage('home')
@@ -63,12 +73,18 @@ function App() {
       setSelectedProductId(String(params.id)) // ✅ luôn là string trong state
     }
 
+    if (page === 'search' && params?.category != null) {
+      setSelectedCategory(params.category)
+    }
+
     setTimeout(() => {
       setCurrentPage(page)
 
       const nextPath =
         page === 'product-detail' && params?.id != null
           ? `/product-detail/${params.id}`
+          : page === 'search' && params?.category
+          ? `/search?category=${encodeURIComponent(params.category)}`
           : page === 'home'
           ? '/'
           : `/${page}`
@@ -104,7 +120,7 @@ function App() {
         return <Register onNavigate={handleNavigation} />
 
       case 'search':
-        return <Search onNavigate={handleNavigation} />
+        return <Search onNavigate={handleNavigation} category={selectedCategory} />
 
       case 'product-detail':
         return (
@@ -168,7 +184,7 @@ function App() {
           <main>
             <HeroSection />
             <FengShuiConsultation />
-            <ProductCategories />
+            <ProductCategories onNavigate={handleNavigation} />
           </main>
         )
     }

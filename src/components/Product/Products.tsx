@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { PageKey } from '../../types/navigation'
+import { searchProducts, type ProductApi } from '../../api/productsAPI'
 
 const pageStyle: CSSProperties = {
   backgroundColor: '#ffffff',
@@ -42,45 +43,82 @@ const grid: CSSProperties = {
 }
 
 const categories = [
-  { id: 1, name: 'VÒNG TAY', image: '/product_categories/vongtay.png' },
-  { id: 2, name: 'DÂY CHUYỀN', image: '/product_categories/daychuyen.jpg' },
-  { id: 3, name: 'NHẪN', image: '/product_categories/nhanphongthuy.png' },
-  { id: 4, name: 'PHỤ KIỆN KHÁC', image: '/product_categories/phukienkhac.png' },
-  { id: 5, name: 'SẢN PHẨM MỚI', image: '/accessories/mauthietke.jpg' },
-  { id: 6, name: 'TÙY CHỈNH', image: '/images/home_banner.png' }
+  { id: 1, name: 'VÒNG TAY', image: '/product_categories/vongtay.png', category: 'VÒNG TAY' },
+  { id: 2, name: 'DÂY CHUYỀN', image: '/product_categories/daychuyen.jpg', category: 'DÂY CHUYỀN' },
+  { id: 3, name: 'NHẪN', image: '/product_categories/nhanphongthuy.png', category: 'NHẪN' },
+  { id: 4, name: 'PHỤ KIỆN KHÁC', image: '/product_categories/phukienkhac.png', category: 'PHỤ KIỆN KHÁC' },
+  { id: 5, name: 'SẢN PHẨM MỚI', image: '/accessories/mauthietke.jpg', category: 'SẢN PHẨM MỚI' },
+  { id: 6, name: 'TẤT CẢ', image: '/images/home_banner.png', category: 'ALL' }
 ]
 
 interface ProductsProps {
-  onNavigate?: (page: PageKey) => void;
+  onNavigate?: (page: PageKey, params?: { category?: string; id?: string | number }) => void;
 }
 
 const Products = ({ onNavigate }: ProductsProps) => {
-  const [hoveredCard, setHoveredCard] = useState<number | null>(null)
+  const [hoveredCard, setHoveredCard] = useState<string | number | null>(null)
   const [hoveredCategory, setHoveredCategory] = useState<number | null>(null)
+  const [products, setProducts] = useState<ProductApi[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const flashProducts = [
-    { id: 1, name: 'Vòng Tay Bạc 925 Nữ Đính 2 Viên Đá', image: '/item/Vòng Tay Bạc 925 Nữ Đính 2 Viên Đá.jpg' },
-    { id: 2, name: 'Dây Chuyền Bạc Nữ 2 Hạt Đá', image: '/item/Dây Chuyền Bạc Nữ 2 Hạt Đá.jpg' },
-    { id: 3, name: 'Vòng Tay Đá Thô', image: '/item/Vòng Tay Đá Thô.jpg' },
-    { id: 4, name: 'Dây Chuyền Bạc Nữ 925', image: '/item/Dây Chuyền Bạc Nữ 925.jpg' },
-    { id: 5, name: 'Vòng Tay Chuỗi Hạt 108 Đá Phong Thuỷ Tự Nhiên', image: '/item/Vòng Tay Chuỗi Hạt 108 Đá Phong Thuỷ Tự Nhiên.jpg' }
-  ].map((p, i) => ({
+  // Fetch products from API
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        setLoading(true)
+        const data = await searchProducts() // GET /api/Product/search
+        if (mounted) setProducts(data || [])
+      } catch (err) {
+        console.error('Load products failed:', err)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [])
+
+  // Map API products to UI format
+  const apiProducts = (products || []).map(p => ({
+    id: p.product_Id,
+    name: p.name,
+    price: p.price,
+    image: p.imageUrl || p.imageURL || '/placeholder.png',
+    category: p.category,
+    status: p.status,
+    stock: p.stock,
+    description: p.description
+  }))
+
+  // Split products for different sections
+  const flashProducts = apiProducts.slice(0, 5).map((p, i) => ({
     ...p,
     rating: [4.9, 4.8, 5.0, 4.9, 5.0][i % 5],
     sold: ['2k+','425','20k+','965','3k+'][i % 5]
   }))
 
-  const suggestionProducts = [
-    { id: 6, name: 'Vòng Tay Chỉ Đỏ Đính Đá Handmade Lu Thống', image: '/item/Vòng Tay Chỉ Đỏ Đính Đá Handmade Lu Thống.jpg' },
-    { id: 7, name: 'Vòng Tay Đá Mài Giác Cho Nữ', image: '/item/Vòng Tay Đá Mài Giác Cho Nữ.jpg' },
-    { id: 8, name: 'Lắc Tay Bạc Nữ 925 Đính 5 Hạt Đá', image: '/item/Lắc Tay Bạc Nữ 925 Đính 5 Hạt Đá.jpg' },
-    { id: 9, name: 'Vòng Tay Đá Thô Full Of Energy', image: '/item/Vòng Tay Đá Thô Full Of Energy .jpg' },
-    { id: 10, name: 'Vòng Tay Bạc Nữ Liugems Kết Hợp Hạt Đá Phong Thuỷ', image: '/item/Vòng Tay Bạc Nữ Liugems Kết Hợp Hạt Đá Phong Thuỷ Handmade Mix Charm Bi Mini Size.jpg' }
-  ].map((p, i) => ({
+  const suggestionProducts = apiProducts.slice(5, 10).map((p, i) => ({
     ...p,
     rating: [4.9, 4.9, 4.8, 4.9, 5.0][i % 5],
     sold: ['965','147','425','1k+','1k+'][i % 5]
   }))
+
+  // Use API products or fallback to hardcoded data
+  const finalFlashProducts = flashProducts.length > 0 ? flashProducts : [
+    { id: 1, name: 'Vòng Tay Bạc 925 Nữ Đính 2 Viên Đá', image: '/item/Vòng Tay Bạc 925 Nữ Đính 2 Viên Đá.jpg', price: 165000, rating: 4.9, sold: '2k+' },
+    { id: 2, name: 'Dây Chuyền Bạc Nữ 2 Hạt Đá', image: '/item/Dây Chuyền Bạc Nữ 2 Hạt Đá.jpg', price: 139300, rating: 4.8, sold: '425' },
+    { id: 3, name: 'Vòng Tay Đá Thô', image: '/item/Vòng Tay Đá Thô.jpg', price: 187500, rating: 5.0, sold: '20k+' },
+    { id: 4, name: 'Dây Chuyền Bạc Nữ 925', image: '/item/Dây Chuyền Bạc Nữ 925.jpg', price: 216000, rating: 4.9, sold: '965' },
+    { id: 5, name: 'Vòng Tay Chuỗi Hạt 108 Đá Phong Thuỷ Tự Nhiên', image: '/item/Vòng Tay Chuỗi Hạt 108 Đá Phong Thuỷ Tự Nhiên.jpg', price: 231000, rating: 5.0, sold: '3k+' }
+  ]
+
+  const finalSuggestionProducts = suggestionProducts.length > 0 ? suggestionProducts : [
+    { id: 6, name: 'Vòng Tay Chỉ Đỏ Đính Đá Handmade Lu Thống', image: '/item/Vòng Tay Chỉ Đỏ Đính Đá Handmade Lu Thống.jpg', price: 450000, rating: 4.9, sold: '965' },
+    { id: 7, name: 'Vòng Tay Đá Mài Giác Cho Nữ', image: '/item/Vòng Tay Đá Mài Giác Cho Nữ.jpg', price: 260000, rating: 4.9, sold: '147' },
+    { id: 8, name: 'Lắc Tay Bạc Nữ 925 Đính 5 Hạt Đá', image: '/item/Lắc Tay Bạc Nữ 925 Đính 5 Hạt Đá.jpg', price: 210000, rating: 4.8, sold: '425' },
+    { id: 9, name: 'Vòng Tay Đá Thô Full Of Energy', image: '/item/Vòng Tay Đá Thô Full Of Energy .jpg', price: 245000, rating: 4.9, sold: '1k+' },
+    { id: 10, name: 'Vòng Tay Bạc Nữ Liugems Kết Hợp Hạt Đá Phong Thuỷ', image: '/item/Vòng Tay Bạc Nữ Liugems Kết Hợp Hạt Đá Phong Thuỷ Handmade Mix Charm Bi Mini Size.jpg', price: 225000, rating: 5.0, sold: '1k+' }
+  ]
 
   const card: CSSProperties = {
     height: '400px',
@@ -204,7 +242,7 @@ const Products = ({ onNavigate }: ProductsProps) => {
               }}
               onMouseEnter={() => setHoveredCategory(c.id)}
               onMouseLeave={() => setHoveredCategory(null)}
-              onClick={() => onNavigate?.('search')}
+              onClick={() => onNavigate?.('search', { category: c.category })}
             >
               <img 
                 src={c.image} 
@@ -233,33 +271,52 @@ const Products = ({ onNavigate }: ProductsProps) => {
               FLASH SALE
               <div style={sectionTitleAfter} />
             </div>
-            <a href="#" style={{ 
-              color: '#666666', 
-              fontSize: '0.875rem', 
-              textDecoration: 'none',
-              letterSpacing: '0.05em',
-              transition: 'color 0.3s ease'
-            }}>
+            <button 
+              onClick={() => onNavigate?.('search', { category: 'ALL' })}
+              style={{ 
+                color: '#666666', 
+                fontSize: '0.875rem', 
+                textDecoration: 'none',
+                letterSpacing: '0.05em',
+                transition: 'color 0.3s ease',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#000000'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#666666'
+              }}
+            >
               XEM THÊM →
-            </a>
+            </button>
           </div>
           <div style={sliderRow}>
-            {flashProducts.map((p, idx) => {
-              const flashPrices = [165000, 139300, 187500, 216000, 231000]
-              const flashDiscounts = [25, 30, 25, 28, 23]
-              const priceNow = flashPrices[idx % flashPrices.length]
-              const discount = flashDiscounts[idx % flashDiscounts.length]
-              const isHovered = hoveredCard === p.id
+            {loading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '200px' }}>
+                <div style={{ fontSize: '1.125rem', color: '#666666' }}>Đang tải sản phẩm...</div>
+              </div>
+            ) : (
+              finalFlashProducts.map((p, idx) => {
+                const flashDiscounts = [25, 30, 25, 28, 23]
+                const discount = flashDiscounts[idx % flashDiscounts.length]
+                const priceNow = p.price || 0
+                const isHovered = hoveredCard === p.id
               
-              return (
+                return (
                 <div 
                   key={p.id} 
                   style={{
                     ...cardWrap,
                     transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
                     borderColor: isHovered ? '#000000' : '#e5e5e5',
-                    boxShadow: isHovered ? '0 16px 32px rgba(0,0,0,0.12)' : '0 4px 12px rgba(0,0,0,0.05)'
+                    boxShadow: isHovered ? '0 16px 32px rgba(0,0,0,0.12)' : '0 4px 12px rgba(0,0,0,0.05)',
+                    cursor: 'pointer'
                   }}
+                  onClick={() => onNavigate?.('product-detail', { id: p.id })}
                   onMouseEnter={() => setHoveredCard(p.id)}
                   onMouseLeave={() => setHoveredCard(null)}
                 >
@@ -305,7 +362,13 @@ const Products = ({ onNavigate }: ProductsProps) => {
                       <div style={{ fontWeight: 900, color: '#000000', fontSize: '1.125rem', letterSpacing: '-0.02em' }}>
                         {formatVND(priceNow)}
                       </div>
-                      <button style={{ 
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // Handle add to cart logic here
+                          console.log('Added to cart:', p.name)
+                        }}
+                        style={{ 
                         border: '1px solid #cccccc', 
                         background: 'transparent', 
                         cursor: 'pointer', 
@@ -337,7 +400,8 @@ const Products = ({ onNavigate }: ProductsProps) => {
                   </div>
                 </div>
               )
-            })}
+              })
+            )}
           </div>
         </div>
 
@@ -348,23 +412,40 @@ const Products = ({ onNavigate }: ProductsProps) => {
               GỢI Ý HÔM NAY
               <div style={sectionTitleAfter} />
             </div>
-            <a href="#" style={{ 
-              color: '#666666', 
-              fontSize: '0.875rem', 
-              textDecoration: 'none',
-              letterSpacing: '0.05em',
-              transition: 'color 0.3s ease'
-            }}>
+            <button 
+              onClick={() => onNavigate?.('search', { category: 'ALL' })}
+              style={{ 
+                color: '#666666', 
+                fontSize: '0.875rem', 
+                textDecoration: 'none',
+                letterSpacing: '0.05em',
+                transition: 'color 0.3s ease',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#000000'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#666666'
+              }}
+            >
               XEM THÊM →
-            </a>
+            </button>
           </div>
           <div style={sliderRow}>
-            {suggestionProducts.map((p, idx) => {
-              const suggestPrices = [450000, 260000, 210000, 245000, 225000]
-              const suggestDiscounts = [25, 35, 40, 30, 10]
-              const priceNow = suggestPrices[idx % suggestPrices.length]
-              const discount = suggestDiscounts[idx % suggestDiscounts.length]
-              const isHovered = hoveredCard === p.id
+            {loading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '200px' }}>
+                <div style={{ fontSize: '1.125rem', color: '#666666' }}>Đang tải sản phẩm...</div>
+              </div>
+            ) : (
+              finalSuggestionProducts.map((p, idx) => {
+                const suggestDiscounts = [25, 35, 40, 30, 10]
+                const discount = suggestDiscounts[idx % suggestDiscounts.length]
+                const priceNow = p.price || 0
+                const isHovered = hoveredCard === p.id
               
               return (
                 <div 
@@ -373,8 +454,10 @@ const Products = ({ onNavigate }: ProductsProps) => {
                     ...cardWrap,
                     transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
                     borderColor: isHovered ? '#000000' : '#e5e5e5',
-                    boxShadow: isHovered ? '0 16px 32px rgba(0,0,0,0.12)' : '0 4px 12px rgba(0,0,0,0.05)'
+                    boxShadow: isHovered ? '0 16px 32px rgba(0,0,0,0.12)' : '0 4px 12px rgba(0,0,0,0.05)',
+                    cursor: 'pointer'
                   }}
+                  onClick={() => onNavigate?.('product-detail', { id: p.id })}
                   onMouseEnter={() => setHoveredCard(p.id)}
                   onMouseLeave={() => setHoveredCard(null)}
                 >
@@ -420,7 +503,13 @@ const Products = ({ onNavigate }: ProductsProps) => {
                       <div style={{ fontWeight: 900, color: '#000000', fontSize: '1.125rem', letterSpacing: '-0.02em' }}>
                         {formatVND(priceNow)}
                       </div>
-                      <button style={{ 
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // Handle add to cart logic here
+                          console.log('Added to cart:', p.name)
+                        }}
+                        style={{ 
                         border: '1px solid #cccccc', 
                         background: 'transparent', 
                         cursor: 'pointer', 
@@ -452,7 +541,8 @@ const Products = ({ onNavigate }: ProductsProps) => {
                   </div>
                 </div>
               )
-            })}
+              })
+            )}
           </div>
         </div>
       </div>
