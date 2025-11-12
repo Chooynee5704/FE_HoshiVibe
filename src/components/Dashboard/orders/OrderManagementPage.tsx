@@ -346,7 +346,7 @@ export default function OrderManagementPage({
                       <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Ngày đặt</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Địa chỉ giao hàng</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Trạng thái</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Tr?ng th�i giao h�ng</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Trạng thái giao hàng</th>
                       <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">Tổng tiền</th>
                       <th className="px-6 py-4 w-12"></th>
                     </tr>
