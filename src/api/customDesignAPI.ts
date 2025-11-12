@@ -2,34 +2,27 @@ import { api } from './axios';
 
 export interface CustomDesign {
   customDesign_Id: string;
-  user_Id: string;
+  user_Id?: string;
   name: string;
-  description: string;
+  description?: string;
   price: number;
-  rawImageBase64: string;
-  aiImageUrl: string;
+  rawImageBase64?: string;
+  aiImageUrl?: string;
   createdDate: string;
   charmIds?: string[];
 }
 
 export interface CreateCustomDesignRequest {
-  user_Id: string;
+  user_Id?: string;
   name: string;
-  description: string;
-  rawImageBase64: string;
-  aiImageUrl: string;
-  charmIds: string[];
+  description?: string;
+  price?: number;
+  rawImageBase64?: string;
+  aiImageUrl?: string;
+  charmIds?: string[];
 }
 
-export interface UpdateCustomDesignRequest {
-  user_Id: string;
-  name: string;
-  description: string;
-  price?: number;
-  rawImageBase64: string;
-  aiImageUrl: string;
-  charmIds: string[];
-}
+export interface UpdateCustomDesignRequest extends CreateCustomDesignRequest {}
 
 const customDesignAPI = {
   async getAllCustomDesigns(): Promise<CustomDesign[]> {

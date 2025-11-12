@@ -11,6 +11,7 @@ import Statistic from "../reports/Statistic"
 import NewProductPage from "../products/NewProductPage"
 import OrderDetailPage from "../orders/OrderDetailPage"
 import DesignRoomPage from "../design/DesignRoomPage"
+import CustomProductsPage from "../custom/CustomProductsPage"
 import { getCurrentUser } from "../../../api/authApi"
 
 export default function AdminLayout() {
@@ -125,6 +126,7 @@ export default function AdminLayout() {
       case "orders":      return renderOrders()
       case "customers":   return renderCustomers()
       case "design-room": return <DesignRoomPage />
+      case "custom-products": return <CustomProductsPage />
       case "reports":     return <Statistic />
       default:            return <div className="p-6">Chọn mục từ sidebar</div>
     }

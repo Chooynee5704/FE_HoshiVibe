@@ -28,6 +28,25 @@ type Props = {
   mode?: 'view' | 'edit'
 }
 
+const formatPhoneDisplay = (value?: string | number): string => {
+  if (value === undefined || value === null) return ''
+  const raw = String(value).trim()
+  if (!raw) return ''
+  if (raw.startsWith('+84')) return raw
+  if (raw.startsWith('84')) return `+${raw}`
+  if (raw.startsWith('0')) return raw
+  return `0${raw}`
+}
+
+const formatTelHref = (display: string): string => {
+  if (!display) return ''
+  if (display.startsWith('+')) return display.replace(/\s+/g, '')
+  if (display.startsWith('0')) {
+    return `+84${display.slice(1)}`
+  }
+  return display.replace(/\s+/g, '')
+}
+
 export default function OrderDetailPage({ orderId, onBack, mode = 'view' }: Props) {
   const [order, setOrder] = useState<OrderData | null>(null)
   const [orderDetails, setOrderDetails] = useState<OrderDetail[]>([])
@@ -42,6 +61,8 @@ export default function OrderDetailPage({ orderId, onBack, mode = 'view' }: Prop
   const [saving, setSaving] = useState(false)
   const [editMode, setEditMode] = useState(mode === 'edit')
   const isEditMode = editMode
+  const formattedPhoneNumber = order?.phoneNumber && order.phoneNumber !== 0 ? formatPhoneDisplay(order.phoneNumber) : ''
+  const formattedPhoneHref = formattedPhoneNumber ? formatTelHref(formattedPhoneNumber) : ''
 
   useEffect(() => {
     loadOrderData()
@@ -173,7 +194,7 @@ export default function OrderDetailPage({ orderId, onBack, mode = 'view' }: Prop
   }
 
   const getShippingStep = (status?: string) => {
-    const s = status?.toLowerCase()
+    const s = status?.trim().toLowerCase()
     if (s === 'shipping') return 1
     if (s === 'delivered') return 2
     if (s === 'pickedup') return 3
@@ -330,9 +351,9 @@ export default function OrderDetailPage({ orderId, onBack, mode = 'view' }: Prop
             <h3 className="text-sm font-semibold text-gray-700 mb-4">Cập nhật trạng thái vận chuyển:</h3>
             <div className="flex flex-wrap gap-3">
               <AntButton
-                type={order.shippingStatus?.toLowerCase() === 'pending' ? 'primary' : 'default'}
+                type={order.shippingStatus?.trim().toLowerCase() === 'pending' ? 'primary' : 'default'}
                 loading={updating}
-                disabled={order.shippingStatus?.toLowerCase() === 'pending'}
+                disabled={order.shippingStatus?.trim().toLowerCase() === 'pending'}
                 onClick={() => handleUpdateShippingStatus('Pending')}
                 icon={<Clock className="w-4 h-4" />}
               >
@@ -340,9 +361,9 @@ export default function OrderDetailPage({ orderId, onBack, mode = 'view' }: Prop
               </AntButton>
               
               <AntButton
-                type={order.shippingStatus?.toLowerCase() === 'shipping' ? 'primary' : 'default'}
+                type={order.shippingStatus?.trim().toLowerCase() === 'shipping' ? 'primary' : 'default'}
                 loading={updating}
-                disabled={order.shippingStatus?.toLowerCase() === 'shipping'}
+                disabled={order.shippingStatus?.trim().toLowerCase() === 'shipping'}
                 onClick={() => handleUpdateShippingStatus('Shipping')}
                 icon={<Truck className="w-4 h-4" />}
               >
@@ -350,9 +371,9 @@ export default function OrderDetailPage({ orderId, onBack, mode = 'view' }: Prop
               </AntButton>
               
               <AntButton
-                type={order.shippingStatus?.toLowerCase() === 'delivered' ? 'primary' : 'default'}
+                type={order.shippingStatus?.trim().toLowerCase() === 'delivered' ? 'primary' : 'default'}
                 loading={updating}
-                disabled={order.shippingStatus?.toLowerCase() === 'delivered'}
+                disabled={order.shippingStatus?.trim().toLowerCase() === 'delivered'}
                 onClick={() => handleUpdateShippingStatus('Delivered')}
                 icon={<Package className="w-4 h-4" />}
               >
@@ -409,14 +430,16 @@ export default function OrderDetailPage({ orderId, onBack, mode = 'view' }: Prop
             ) : (
               <div className="space-y-2 text-sm text-gray-700">
                 <p className="font-medium">{order.shippingAddress || "Chua co dia chi"}</p>
-                {order.phoneNumber && (
-                  <p>
-                    <span className="text-gray-600">Dien thoai: </span>
-                    <a href={`tel:${order.phoneNumber}`} className="text-blue-600 font-medium hover:underline">
-                      {order.phoneNumber}
+                <p>
+                  <span className="text-gray-600">Dien thoai: </span>
+                  {formattedPhoneNumber ? (
+                    <a href={`tel:${formattedPhoneHref}`} className="text-blue-600 font-medium hover:underline">
+                      {formattedPhoneNumber}
                     </a>
-                  </p>
-                )}
+                  ) : (
+                    <span className="text-gray-500">Chua cap nhat</span>
+                  )}
+                </p>
               </div>
             )}
           </div>

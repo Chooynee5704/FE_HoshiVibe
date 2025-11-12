@@ -2,10 +2,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Modal } from 'antd'
 import {
-  Header, HeroSection, ProductCategories, ChatWidget, Footer,
-  About, Products, Login, Register, Search, ProductDetail, Cart, Profile, Orders, OrderDetail as OrderDetailPage
+  Header,
+  HeroSection,
+  ProductCategories,
+  ChatWidget,
+  Footer,
+  About,
+  Products,
+  Login,
+  Register,
+  Search,
+  ProductDetail,
+  Cart,
+  Profile,
+  Orders,
+  OrderDetail as OrderDetailPage,
 } from './components'
-import CustomDesign from './components/CustomDesign'
+import CustomDesignPage from './components/CustomDesign'
 import type { PageKey } from './types/navigation'
 import AdminLayout from './components/Dashboard/layout/AdminLayout'
 import FengShuiConsultation from './components/FengShuiConsultation'
@@ -19,6 +32,7 @@ import {
   type Order,
   type OrderDetail,
 } from './api/orderAPI'
+import customDesignAPI, { type CustomDesign as CustomDesignDTO } from './api/customDesignAPI'
 
 // ✅ Dùng đúng CartItem do Cart export để tránh "Two different types with this name exist"
 import type { CartItem as UICartItem } from './components/Cart'
@@ -28,17 +42,121 @@ type NavParams = { id?: IdLike; category?: string }
 
 const PLACEHOLDER_IMAGE = '/placeholder.jpg'
 
-const mapOrderDetailsToCartItems = (orderDetails: OrderDetail[] = []): UICartItem[] => {
+const firstNonEmpty = (...values: Array<string | null | undefined>): string | null => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim()
+    }
+  }
+  return null
+}
+
+const normalizeImageSource = (raw?: string | null): string | null => {
+  if (!raw) return null
+  const trimmed = raw.trim().replace(/^"+|"+$/g, '')
+  if (!trimmed) return null
+  if (/^(data:image|https?:|blob:)/i.test(trimmed)) {
+    return trimmed
+  }
+  const base64Pattern = /^[A-Za-z0-9+/=]+$/
+  if (base64Pattern.test(trimmed) && trimmed.length > 60) {
+    return `data:image/jpeg;base64,${trimmed}`
+  }
+  return trimmed
+}
+
+type CustomDesignCache = Map<string, CustomDesignDTO>
+
+const buildCustomDesignCache = async (orderDetails: OrderDetail[] = []): Promise<CustomDesignCache> => {
+  const cache: CustomDesignCache = new Map()
+  const idsToFetch = new Set<string>()
+
+  for (const detail of orderDetails) {
+    const extendedDetail = detail as OrderDetail & Record<string, any>
+    const customDesignId =
+      detail.customDesignId || detail.customDesign_Id || extendedDetail.CustomDesignId || extendedDetail.CustomDesign_Id
+    if (!customDesignId) continue
+    const hasEmbeddedDesign = extendedDetail.customDesign || extendedDetail.CustomDesign
+    if (!hasEmbeddedDesign) {
+      idsToFetch.add(customDesignId)
+    }
+  }
+
+  await Promise.all(
+    Array.from(idsToFetch).map(async (id) => {
+      try {
+        const design = await customDesignAPI.getCustomDesignById(id)
+        cache.set(id, design)
+      } catch (error) {
+        console.error('Failed to load custom design detail', id, error)
+      }
+    })
+  )
+
+  return cache
+}
+
+const mapOrderDetailsToCartItems = (
+  orderDetails: OrderDetail[] = [],
+  customDesignMap?: CustomDesignCache
+): UICartItem[] => {
   return orderDetails.map((detail) => {
-    const customDesignId = detail.customDesignId || detail.customDesign_Id
-    const productId = detail.productId || detail.cProduct_Id
+    const extendedDetail = detail as OrderDetail & Record<string, any>
+    const customDesign = extendedDetail.customDesign || extendedDetail.CustomDesign
+    const product = extendedDetail.product || extendedDetail.Product
+    const customProduct = extendedDetail.customProduct || extendedDetail.CustomProduct
+
+    const customDesignId =
+      detail.customDesignId || detail.customDesign_Id || extendedDetail.CustomDesignId || extendedDetail.CustomDesign_Id
+    const productId = detail.productId || detail.cProduct_Id || extendedDetail.ProductId || extendedDetail.CProductId
+
+    const fetchedDesign = customDesignId ? customDesignMap?.get(customDesignId) : undefined
+
+    const resolvedName =
+      firstNonEmpty(
+        customDesign?.name || fetchedDesign?.name,
+        customDesign?.Name,
+        fetchedDesign?.name,
+        customProduct?.name,
+        customProduct?.Name,
+        product?.name,
+        product?.Name
+      ) || 'San pham'
+
+    const resolvedDescription = firstNonEmpty(
+      customDesign?.description || fetchedDesign?.description,
+      customDesign?.Description,
+      fetchedDesign?.description,
+      customProduct?.description,
+      customProduct?.Description,
+      product?.description,
+      product?.Description
+    )
+
+    const resolvedImage =
+      normalizeImageSource(
+        firstNonEmpty(
+          customDesign?.aiImageUrl || fetchedDesign?.aiImageUrl,
+          customDesign?.AiImageUrl,
+          fetchedDesign?.aiImageUrl,
+          customDesign?.rawImageBase64 || fetchedDesign?.rawImageBase64,
+          customDesign?.RawImageBase64,
+          fetchedDesign?.rawImageBase64,
+          customProduct?.imageUrl,
+          customProduct?.imageURL,
+          customProduct?.ImageUrl,
+          product?.imageUrl,
+          product?.imageURL,
+          product?.ImageUrl
+        )
+      ) || PLACEHOLDER_IMAGE
 
     return {
       id: customDesignId || productId || detail.orderDetailId || detail.orderDetail_Id || '',
-      name: detail.customDesign?.name || detail.product?.name || 'San pham',
-      description: detail.customDesign?.description || detail.product?.description,
+      name: resolvedName,
+      description: resolvedDescription || undefined,
       price: detail.unitPrice,
-      image: detail.customDesign?.aiImageUrl || detail.product?.imageUrl || detail.product?.imageURL || PLACEHOLDER_IMAGE,
+      image: resolvedImage,
       quantity: detail.quantity,
       orderDetailId: detail.orderDetailId || detail.orderDetail_Id,
     }
@@ -78,7 +196,8 @@ function App() {
       setCurrentOrder(order)
 
       if (order?.orderDetails?.length) {
-        const items = mapOrderDetailsToCartItems(order.orderDetails)
+        const customDesignCache = await buildCustomDesignCache(order.orderDetails)
+        const items = mapOrderDetailsToCartItems(order.orderDetails, customDesignCache)
         setCartItems(items)
         setCartCount(items.reduce((sum, item) => sum + item.quantity, 0))
       } else {
@@ -242,7 +361,7 @@ function App() {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'custom-design':
-        return <CustomDesign onCartUpdated={loadCart} />
+        return <CustomDesignPage onCartUpdated={loadCart} />
 
       case 'products':
         return <Products onNavigate={handleNavigation} onAddToCart={handleAddToCart} />

@@ -1,3 +1,4 @@
+﻿                      <th className="px-6 py-4 w-12"></th>
 "use client"
 
 import { useState, useEffect } from "react"
@@ -11,6 +12,8 @@ import {
   Loader2,
   Edit,
   Trash2,
+  Truck,
+  Package,
 } from "lucide-react"
 import { Button, Checkbox, message, Modal, Dropdown } from "antd"
 import type { MenuProps } from "antd"
@@ -65,8 +68,10 @@ export default function OrderManagementPage({
   }
 
 
+  const normalizeStatus = (value?: string) => value?.trim().toLowerCase() || ""
+
   const getStatusBadge = (status: string) => {
-    const s = status.toLowerCase()
+    const s = normalizeStatus(status)
     if (s === "completed") {
       return (
         <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm border border-emerald-200">
@@ -96,6 +101,55 @@ export default function OrderManagementPage({
         <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm border border-blue-200">
           <Loader2 className="w-4 h-4 animate-spin" />
           Xử lý
+        </span>
+      )
+    }
+    if (s === "cancelled" || s === "canceled") {
+      return (
+        <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-50 text-red-600 rounded-full text-sm border border-red-200">
+          <Clock className="w-4 h-4" />
+          Đã hủy
+        </span>
+      )
+    }
+    return <span className="text-sm text-gray-600">{status}</span>
+  }
+
+  const getShippingBadge = (status?: string) => {
+    if (!status) {
+      return <span className="text-sm text-gray-500">Chưa cập nhật</span>
+    }
+
+    const s = normalizeStatus(status)
+    if (s === "pending") {
+      return (
+        <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm border border-gray-300">
+          <Clock className="w-4 h-4" />
+          Chờ xử lý
+        </span>
+      )
+    }
+    if (s === "shipping") {
+      return (
+        <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm border border-blue-200">
+          <Truck className="w-4 h-4" />
+          Đang giao
+        </span>
+      )
+    }
+    if (s === "delivered") {
+      return (
+        <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm border border-emerald-200">
+          <CheckCircle2 className="w-4 h-4" />
+          Đã giao
+        </span>
+      )
+    }
+    if (s === "pickedup") {
+      return (
+        <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-sm border border-purple-200">
+          <Package className="w-4 h-4" />
+          Đã lấy
         </span>
       )
     }
@@ -292,6 +346,7 @@ export default function OrderManagementPage({
                       <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Ngày đặt</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Địa chỉ giao hàng</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Trạng thái</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Tr?ng th�i giao h�ng</th>
                       <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">Tổng tiền</th>
                       <th className="px-6 py-4 w-12"></th>
                     </tr>
@@ -299,7 +354,7 @@ export default function OrderManagementPage({
                   <tbody className="divide-y divide-gray-200">
                     {currentOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                        <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
                           Chưa có đơn hàng nào
                         </td>
                       </tr>
@@ -333,6 +388,7 @@ export default function OrderManagementPage({
                             </div>
                           </td>
                           <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
+                          <td className="px-6 py-4">{getShippingBadge(order.shippingStatus)}</td>
                           <td className="px-6 py-4 text-right">
                             <span className="text-sm font-bold text-black">{formatCurrency(order.finalPrice)}</span>
                           </td>
