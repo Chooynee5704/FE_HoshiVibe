@@ -222,3 +222,29 @@ export async function updateShippingStatus(
   console.log('Shipping status updated:', res.data);
   return res.data;
 }
+
+export async function deleteOrder(orderId: string) {
+  const token = getToken();
+  
+  console.log('Deleting order:', orderId);
+  
+  const res = await api.delete(`/Order/delete/${orderId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  
+  console.log('Order deleted:', res.data);
+  return res.data;
+}
+
+export async function getOrderById(orderId: string): Promise<Order> {
+  const token = getToken();
+  
+  console.log('Fetching order by ID:', orderId);
+  
+  const res = await api.get<Order>(`/Order/${orderId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  
+  console.log('Order fetched:', res.data);
+  return res.data;
+}

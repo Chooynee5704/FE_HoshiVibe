@@ -1,8 +1,8 @@
 "use client"
 
-import { Package, ShoppingCart, Users, BarChart3 } from "lucide-react"
+import { Package, ShoppingCart, Users, BarChart3, Palette } from "lucide-react"
 
-export type ItemKey = "products" | "orders" | "customers" | "reports" | "settings"
+export type ItemKey = "products" | "orders" | "customers" | "design-room" | "reports" | "settings"
 
 export default function Sidebar({
   active = "products",
@@ -21,6 +21,7 @@ export default function Sidebar({
     products: Package,
     orders: ShoppingCart,
     customers: Users,
+    "design-room": Palette,
     reports: BarChart3,
     settings: BarChart3,
   }
@@ -67,6 +68,7 @@ export default function Sidebar({
         <Item k="products" label="Quản lý sản phẩm" />
         <Item k="orders" label="Quản lý đơn hàng" />
         <Item k="customers" label="Quản lý khách hàng" />
+        <Item k="design-room" label="Phòng thiết kế" />
         <Item k="reports" label="Thống kê & Báo cáo" />
       </nav>
 

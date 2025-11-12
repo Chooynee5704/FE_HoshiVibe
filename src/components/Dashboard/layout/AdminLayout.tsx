@@ -10,6 +10,7 @@ import CustomerDetailPage from "../customers/CustomerDetailPage"
 import Statistic from "../reports/Statistic"
 import NewProductPage from "../products/NewProductPage"
 import OrderDetailPage from "../orders/OrderDetailPage"
+import DesignRoomPage from "../design/DesignRoomPage"
 import { getCurrentUser } from "../../../api/authApi"
 
 export default function AdminLayout() {
@@ -23,7 +24,7 @@ export default function AdminLayout() {
   const [editingProduct] = useState<any>(null)
 
   // Orders
-  const [orderView, setOrderView] = useState<"list" | "detail">("list")
+  const [orderView, setOrderView] = useState<"list" | "detail" | "edit">("list")
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
 
   // Customers
@@ -85,9 +86,18 @@ export default function AdminLayout() {
         />
       )
     }
+    if (orderView === "edit" && selectedOrderId) {
+      return (
+        <OrderDetailPage
+          orderId={selectedOrderId}
+          onBack={() => { setOrderView("list"); setSelectedOrderId(null) }}
+        />
+      )
+    }
     return (
       <OrderManagementPage
         onOpenDetail={(id) => { setSelectedOrderId(id); setOrderView("detail") }}
+        onOpenEdit={(id) => { setSelectedOrderId(id); setOrderView("edit") }}
       />
     )
   }
@@ -110,11 +120,12 @@ export default function AdminLayout() {
 
   const renderPage = () => {
     switch (active) {
-      case "products":  return renderProducts()
-      case "orders":    return renderOrders()
-      case "customers": return renderCustomers()
-      case "reports":   return <Statistic />
-      default:          return <div className="p-6">Chọn mục từ sidebar</div>
+      case "products":    return renderProducts()
+      case "orders":      return renderOrders()
+      case "customers":   return renderCustomers()
+      case "design-room": return <DesignRoomPage />
+      case "reports":     return <Statistic />
+      default:            return <div className="p-6">Chọn mục từ sidebar</div>
     }
   }
 
@@ -131,9 +142,9 @@ export default function AdminLayout() {
             active={active}
             onNavigate={(k) => {
               setActive(k)
-              if (k !== "products")  setProductView("list")
-              if (k !== "orders")   { setOrderView("list"); setSelectedOrderId(null) }
-              if (k !== "customers"){ setCustomerView("list"); setSelectedCustomerId(null) }
+              if (k !== "products")    setProductView("list")
+              if (k !== "orders")      { setOrderView("list"); setSelectedOrderId(null) }
+              if (k !== "customers")   { setCustomerView("list"); setSelectedCustomerId(null) }
             }}
           />
           <main className="flex-1 flex flex-col bg-white">{renderPage()}</main>

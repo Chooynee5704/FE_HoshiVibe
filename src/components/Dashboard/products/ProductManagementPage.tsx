@@ -23,6 +23,8 @@ export default function ProductManagementPage({ onCreateNew }: { onCreateNew?: (
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["bracelets", "necklaces", "strings"])
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState<UIProduct[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(9) // 3x3 grid
 
   // Drawer state
   const [detailOpen, setDetailOpen] = useState(false)
@@ -101,6 +103,59 @@ export default function ProductManagementPage({ onCreateNew }: { onCreateNew?: (
   const formatVND = (n: number) =>
     n.toLocaleString("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 })
 
+  // Pagination logic
+  const totalPages = Math.ceil(products.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentProducts = products.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1)
+    }
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1)
+    }
+  }
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages: number[] = []
+    const maxVisiblePages = 5
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i)
+        pages.push(-1) // ellipsis
+        pages.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1)
+        pages.push(-1)
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i)
+      } else {
+        pages.push(1)
+        pages.push(-1)
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i)
+        pages.push(-1)
+        pages.push(totalPages)
+      }
+    }
+    
+    return pages
+  }
+
   return (
     <div className="flex min-h-screen bg-white">
       <main className="flex-1 flex flex-col">
@@ -157,7 +212,7 @@ export default function ProductManagementPage({ onCreateNew }: { onCreateNew?: (
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-6">
-                  {products.map((product) => (
+                  {currentProducts.map((product) => (
                     <div
                       key={product.id}
                       className="relative bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all cursor-pointer"
@@ -198,17 +253,43 @@ export default function ProductManagementPage({ onCreateNew }: { onCreateNew?: (
               )}
 
               {/* Pagination */}
-              <div className="flex items-center justify-center gap-3 mt-8">
-                <button className="p-2 hover:bg-gray-100 rounded-lg">
-                  <ChevronRight className="w-5 h-5 text-gray-600 rotate-180" />
-                </button>
-                <button className="w-10 h-10 bg-blue-600 text-white rounded-lg font-medium">1</button>
-                <button className="w-10 h-10 hover:bg-gray-100 text-gray-700 rounded-lg font-medium">2</button>
-                <button className="w-10 h-10 hover:bg-gray-100 text-gray-700 rounded-lg font-medium">3</button>
-                <button className="p-2 hover:bg-gray-100 rounded-lg">
-                  <ChevronRight className="w-5 h-5 text-gray-600" />
-                </button>
-              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 mt-8">
+                  <button 
+                    className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronRight className="w-5 h-5 text-gray-600 rotate-180" />
+                  </button>
+                  
+                  {getPageNumbers().map((page, index) => 
+                    page === -1 ? (
+                      <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
+                    ) : (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-blue-600 text-white'
+                            : 'hover:bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  )}
+                  
+                  <button 
+                    className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

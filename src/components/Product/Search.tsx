@@ -22,6 +22,7 @@ const Search = ({ onNavigate, searchQuery = '', category = '', onAddToCart }: Se
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState<ProductApi[]>([])
+  const [itemsPerPage] = useState(12) // 12 products per page (4x3 grid)
   const sectionRef = useRef<HTMLDivElement | null>(null)
   const { animationState, triggerFlyAnimation, completeAnimation } = useFlyAnimation()
 
@@ -118,12 +119,65 @@ const Search = ({ onNavigate, searchQuery = '', category = '', onAddToCart }: Se
 
   const handleCategoryClick = (categoryId: string) => {
     setSelectedCategory(categoryId)
-    setCurrentPage(1)
+    setCurrentPage(1) // Reset to first page when changing category
   }
 
   const handleSortChange = (sort: string) => {
     setSortBy(sort)
     setShowSortDropdown(false)
+    setCurrentPage(1) // Reset to first page when changing sort
+  }
+
+  // Pagination logic
+  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedProducts = sortedProducts.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1)
+    }
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1)
+    }
+  }
+
+  const getPageNumbers = () => {
+    const pages: number[] = []
+    const maxVisiblePages = 5
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i)
+        pages.push(-1)
+        pages.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1)
+        pages.push(-1)
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i)
+      } else {
+        pages.push(1)
+        pages.push(-1)
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i)
+        pages.push(-1)
+        pages.push(totalPages)
+      }
+    }
+    
+    return pages
   }
 
   return (
@@ -278,7 +332,7 @@ const Search = ({ onNavigate, searchQuery = '', category = '', onAddToCart }: Se
               {searchQuery ? `"${searchQuery}"` : selectedCategory === 'ALL' || !selectedCategory ? 'TẤT CẢ SẢN PHẨM' : selectedCategory}
             </h1>
             <p style={{ color: '#6b7280', fontSize: '1.125rem', fontWeight: 400 }}>
-              {loading ? 'Đang tải…' : `${sortedProducts.length} sản phẩm`}
+              {loading ? 'Đang tải…' : `${sortedProducts.length} sản phẩm${totalPages > 1 ? ` • Trang ${currentPage}/${totalPages}` : ''}`}
             </p>
           </div>
 
@@ -295,7 +349,7 @@ const Search = ({ onNavigate, searchQuery = '', category = '', onAddToCart }: Se
     animation: isVisible ? 'fadeInUp 0.8s ease-out' : 'none'
   }}
 >
-            {!loading && sortedProducts.map((product, index) => (
+            {!loading && paginatedProducts.map((product, index) => (
               <div
                 key={product.id}
                 className="product-card"
@@ -410,51 +464,57 @@ const Search = ({ onNavigate, searchQuery = '', category = '', onAddToCart }: Se
           </div>
 
           {/* Pagination (client-side mẫu) */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', marginTop: '4rem' }}>
-            <button
-              className="pagination-btn"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              style={{
-                width: '45px', height: '45px', borderRadius: '0.75rem',
-                border: '2px solid #000000', backgroundColor: 'white', color: '#000000',
-                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: currentPage === 1 ? 0.3 : 1, fontWeight: 700, fontSize: '1.25rem'
-              }}
-            >‹</button>
-
-            {[1, 2, 3].map((page) => (
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', marginTop: '4rem' }}>
               <button
-                key={page}
-                className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
-                onClick={() => setCurrentPage(page)}
+                className="pagination-btn"
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
                 style={{
                   width: '45px', height: '45px', borderRadius: '0.75rem',
-                  border: '2px solid #000000',
-                  backgroundColor: currentPage === page ? '#000000' : 'white',
-                  color: currentPage === page ? 'white' : '#000000',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 700, fontSize: '1rem'
+                  border: '2px solid #000000', backgroundColor: 'white', color: '#000000',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  opacity: currentPage === 1 ? 0.3 : 1, fontWeight: 700, fontSize: '1.25rem'
                 }}
-              >
-                {page}
-              </button>
-            ))}
+              >‹</button>
 
-            <button
-              className="pagination-btn"
-              onClick={() => setCurrentPage(Math.min(3, currentPage + 1))}
-              disabled={currentPage === 3}
-              style={{
-                width: '45px', height: '45px', borderRadius: '0.75rem',
-                border: '2px solid #000000', backgroundColor: 'white', color: '#000000',
-                cursor: currentPage === 3 ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: currentPage === 3 ? 0.3 : 1, fontWeight: 700, fontSize: '1.25rem'
-              }}
-            >›</button>
-          </div>
+              {getPageNumbers().map((page, index) => 
+                page === -1 ? (
+                  <span key={`ellipsis-${index}`} style={{ padding: '0 0.5rem', color: '#9ca3af' }}>...</span>
+                ) : (
+                  <button
+                    key={page}
+                    className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                    onClick={() => handlePageChange(page)}
+                    style={{
+                      width: '45px', height: '45px', borderRadius: '0.75rem',
+                      border: '2px solid #000000',
+                      backgroundColor: currentPage === page ? '#000000' : 'white',
+                      color: currentPage === page ? 'white' : '#000000',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 700, fontSize: '1rem'
+                    }}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+
+              <button
+                className="pagination-btn"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                style={{
+                  width: '45px', height: '45px', borderRadius: '0.75rem',
+                  border: '2px solid #000000', backgroundColor: 'white', color: '#000000',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  opacity: currentPage === totalPages ? 0.3 : 1, fontWeight: 700, fontSize: '1.25rem'
+                }}
+              >›</button>
+            </div>
+          )}
         </div>
       </div>
       

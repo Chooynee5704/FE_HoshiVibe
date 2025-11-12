@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Tag, Button, Spin, Descriptions, Steps } from 'antd'
-import { ArrowLeftOutlined, ShoppingOutlined } from '@ant-design/icons'
+import { Card, Table, Tag, Button, Spin, Descriptions, Steps, message } from 'antd'
+import { ArrowLeftOutlined, ShoppingOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { getCurrentUser } from '../api/authApi'
-import { getAllUserOrders, type Order } from '../api/orderAPI'
+import { getAllUserOrders, updateShippingStatus, type Order } from '../api/orderAPI'
 import type { PageKey } from '../types/navigation'
 
 interface OrderDetailProps {
@@ -13,6 +13,7 @@ interface OrderDetailProps {
 const OrderDetail = ({ orderId, onNavigate }: OrderDetailProps) => {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
     loadOrderDetail()
@@ -128,6 +129,24 @@ const OrderDetail = ({ orderId, onNavigate }: OrderDetailProps) => {
     return amount.toLocaleString('vi-VN') + ' VNĐ'
   }
 
+  const handleConfirmReceived = async () => {
+    if (!order) return
+    
+    try {
+      setUpdating(true)
+      await updateShippingStatus(order.order_Id, 'PickedUp')
+      message.success('Đã xác nhận nhận hàng thành công!')
+      
+      // Reload order detail
+      await loadOrderDetail()
+    } catch (error) {
+      console.error('Error updating shipping status:', error)
+      message.error('Có lỗi xảy ra khi xác nhận nhận hàng. Vui lòng thử lại!')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   if (loading) {
     return (
       <div style={{ 
@@ -186,6 +205,24 @@ const OrderDetail = ({ orderId, onNavigate }: OrderDetailProps) => {
         <Card 
           title="Trạng thái vận chuyển"
           style={{ marginBottom: '24px', borderRadius: '16px' }}
+          extra={
+            order.shippingStatus?.toLowerCase() === 'delivered' && (
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                loading={updating}
+                onClick={handleConfirmReceived}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  borderColor: '#10b981',
+                  fontWeight: 'bold',
+                  boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                Xác nhận đã nhận hàng
+              </Button>
+            )
+          }
         >
           <Steps
             current={getShippingStep(order.shippingStatus)}

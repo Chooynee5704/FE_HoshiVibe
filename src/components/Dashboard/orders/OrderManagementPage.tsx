@@ -9,9 +9,12 @@ import {
   CheckCircle2,
   Clock,
   Loader2,
+  Edit,
+  Trash2,
 } from "lucide-react"
-import { Button, Checkbox, message } from "antd"
+import { Button, Checkbox, message, Modal, Dropdown, Menu } from "antd"
 import { api } from "../../../api/axios"
+import { deleteOrder } from "../../../api/orderAPI"
 
 type OrderItem = {
   order_Id: string
@@ -27,12 +30,17 @@ type OrderItem = {
 
 export default function OrderManagementPage({
   onOpenDetail,
+  onOpenEdit,
 }: {
   onOpenDetail?: (orderId: string) => void
+  onOpenEdit?: (orderId: string) => void
 }) {
   const [selectedOrders, setSelectedOrders] = useState<string[]>([])
   const [orders, setOrders] = useState<OrderItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
 
   useEffect(() => {
     loadOrders()
@@ -115,6 +123,125 @@ export default function OrderManagementPage({
     return d.toLocaleDateString("vi-VN")
   }
 
+  const handleDeleteOrder = (orderId: string) => {
+    Modal.confirm({
+      title: 'Xác nhận xóa đơn hàng',
+      content: `Bạn có chắc chắn muốn xóa đơn hàng #${orderId.substring(0, 8).toUpperCase()}?`,
+      okText: 'Xóa',
+      cancelText: 'Hủy',
+      okType: 'danger',
+      onOk: async () => {
+        setDeleting(orderId)
+        try {
+          await deleteOrder(orderId)
+          message.success('Đã xóa đơn hàng thành công!')
+          loadOrders() // Reload the orders list
+        } catch (err: any) {
+          message.error(err?.response?.data?.message || 'Không thể xóa đơn hàng')
+          console.error('Delete order error:', err)
+        } finally {
+          setDeleting(null)
+        }
+      },
+    })
+  }
+
+  const handleEditOrder = (orderId: string) => {
+    if (onOpenEdit) {
+      onOpenEdit(orderId)
+    } else {
+      message.info('Chức năng chỉnh sửa đang được phát triển')
+    }
+  }
+
+  const getActionsMenu = (orderId: string) => (
+    <Menu
+      onClick={({ key }) => {
+        if (key === 'view') {
+          onOpenDetail?.(orderId)
+        } else if (key === 'edit') {
+          handleEditOrder(orderId)
+        } else if (key === 'delete') {
+          handleDeleteOrder(orderId)
+        }
+      }}
+    >
+      <Menu.Item 
+        key="view" 
+        icon={<MoreHorizontal className="w-4 h-4" />}
+      >
+        Xem chi tiết
+      </Menu.Item>
+      <Menu.Item 
+        key="edit" 
+        icon={<Edit className="w-4 h-4" />}
+      >
+        Chỉnh sửa
+      </Menu.Item>
+      <Menu.Divider />
+      <Menu.Item 
+        key="delete" 
+        icon={<Trash2 className="w-4 h-4" />}
+        danger
+        disabled={deleting === orderId}
+      >
+        {deleting === orderId ? 'Đang xóa...' : 'Xóa'}
+      </Menu.Item>
+    </Menu>
+  )
+
+  // Pagination logic
+  const totalPages = Math.ceil(orders.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentOrders = orders.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1)
+    }
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1)
+    }
+  }
+
+  const getPageNumbers = () => {
+    const pages: number[] = []
+    const maxVisiblePages = 5
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i)
+        pages.push(-1)
+        pages.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1)
+        pages.push(-1)
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i)
+      } else {
+        pages.push(1)
+        pages.push(-1)
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i)
+        pages.push(-1)
+        pages.push(totalPages)
+      }
+    }
+    
+    return pages
+  }
+
   return (
     <div className="flex min-h-screen bg-white">
       <main className="flex-1 flex flex-col">
@@ -165,14 +292,14 @@ export default function OrderManagementPage({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {orders.length === 0 ? (
+                    {currentOrders.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                           Chưa có đơn hàng nào
                         </td>
                       </tr>
                     ) : (
-                      orders.map((order) => (
+                      currentOrders.map((order) => (
                         <tr key={order.order_Id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4">
                             <Checkbox
@@ -205,13 +332,14 @@ export default function OrderManagementPage({
                             <span className="text-sm font-bold text-black">{formatCurrency(order.finalPrice)}</span>
                           </td>
                           <td className="px-6 py-4">
-                            <button
-                              className="p-2 hover:bg-gray-100 rounded border border-gray-300"
-                              onClick={() => onOpenDetail?.(order.order_Id)}
-                              title="Xem chi tiết"
-                            >
-                              <MoreHorizontal className="w-5 h-5 text-black" />
-                            </button>
+                            <Dropdown overlay={getActionsMenu(order.order_Id)} trigger={['click']}>
+                              <button
+                                className="p-2 hover:bg-gray-100 rounded border border-gray-300"
+                                title="Hành động"
+                              >
+                                <MoreHorizontal className="w-5 h-5 text-black" />
+                              </button>
+                            </Dropdown>
                           </td>
                         </tr>
                       ))
@@ -221,19 +349,45 @@ export default function OrderManagementPage({
               </div>
 
               {/* Pagination */}
-              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-center gap-2">
-                  <button className="p-2 hover:bg-gray-100 rounded-lg">
-                    <ChevronRight className="w-5 h-5 text-gray-600 rotate-180" />
-                  </button>
-                  <button className="w-10 h-10 bg-blue-600 text-white rounded-lg font-medium">1</button>
-                  <button className="w-10 h-10 hover:bg-gray-100 text-gray-700 rounded-lg font-medium">2</button>
-                  <button className="w-10 h-10 hover:bg-gray-100 text-gray-700 rounded-lg font-medium">3</button>
-                  <button className="p-2 hover:bg-gray-100 rounded-lg">
-                    <ChevronRight className="w-5 h-5 text-gray-600" />
-                  </button>
+              {totalPages > 1 && (
+                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                  <div className="flex items-center justify-center gap-2">
+                    <button 
+                      className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronRight className="w-5 h-5 text-gray-600 rotate-180" />
+                    </button>
+                    
+                    {getPageNumbers().map((page, index) => 
+                      page === -1 ? (
+                        <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
+                      ) : (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'hover:bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    )}
+                    
+                    <button 
+                      className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>

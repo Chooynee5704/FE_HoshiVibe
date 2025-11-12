@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Filter, MoreHorizontal } from "lucide-react";
+import { Plus, Filter, MoreHorizontal, User } from "lucide-react";
 import { Button, Checkbox } from "antd";
 import { getAllUsersWithProfiles } from "../../../api/usersAPI";
 
@@ -24,6 +24,9 @@ export default function CustomerManagementPage({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const formatDate = (iso?: string) => {
     if (!iso || iso.startsWith("0001-01-01")) return "";
@@ -72,6 +75,62 @@ export default function CustomerManagementPage({
 
   const toggleAll = () => {
     setSelectedIds(allChecked ? [] : rows.map((r) => r.id));
+  };
+
+  const handleImageError = (userId: string) => {
+    setFailedImages((prev) => new Set(prev).add(userId));
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil(rows.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentRows = rows.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pages: number[] = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push(-1);
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push(-1);
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push(-1);
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push(-1);
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
   };
 
   return (
@@ -132,14 +191,14 @@ export default function CustomerManagementPage({
                         {err}
                       </td>
                     </tr>
-                  ) : rows.length === 0 ? (
+                  ) : currentRows.length === 0 ? (
                     <tr>
                       <td className="px-6 py-12 text-center text-gray-500" colSpan={7}>
                         Chưa có dữ liệu
                       </td>
                     </tr>
                   ) : (
-                    rows.map((c) => (
+                    currentRows.map((c) => (
                       <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
                           <Checkbox
@@ -149,12 +208,17 @@ export default function CustomerManagementPage({
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-gray-200 rounded-full border border-gray-300 overflow-hidden flex-shrink-0">
-                              <img
-                                src={c.avatar || "/placeholder.svg"}
-                                alt={c.name}
-                                className="w-full h-full object-cover"
-                              />
+                            <div className="w-12 h-12 bg-gray-300 rounded-full border border-gray-300 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                              {failedImages.has(c.id) ? (
+                                <User className="w-6 h-6 text-gray-500" />
+                              ) : (
+                                <img
+                                  src={c.avatar || "/placeholder.svg"}
+                                  alt={c.name}
+                                  className="w-full h-full object-cover"
+                                  onError={() => handleImageError(c.id)}
+                                />
+                              )}
                             </div>
                             <button
                               className="text-sm font-semibold text-blue-600 hover:underline"
@@ -194,13 +258,45 @@ export default function CustomerManagementPage({
             </div>
 
             {/* Pagination */}
-            <div className="px-8 py-4 border-t border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-center gap-2">
-                <button className="w-10 h-10 bg-blue-600 text-white rounded-lg font-medium">1</button>
-                <button className="w-10 h-10 hover:bg-gray-100 text-gray-700 rounded-lg font-medium">2</button>
-                <button className="w-10 h-10 hover:bg-gray-100 text-gray-700 rounded-lg font-medium">3</button>
+            {totalPages > 1 && (
+              <div className="px-8 py-4 border-t border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-center gap-2">
+                  <button 
+                    className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                  >
+                    ‹
+                  </button>
+                  
+                  {getPageNumbers().map((page, index) => 
+                    page === -1 ? (
+                      <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
+                    ) : (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-blue-600 text-white'
+                            : 'hover:bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  )}
+                  
+                  <button 
+                    className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    ›
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>

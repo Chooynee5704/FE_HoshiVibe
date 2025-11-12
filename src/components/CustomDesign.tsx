@@ -1,10 +1,13 @@
-import { useState, useRef } from 'react'
-import { ShoppingCartOutlined, RobotOutlined, LoadingOutlined, ReloadOutlined, DownloadOutlined, CloseOutlined } from '@ant-design/icons'
+import { useState, useRef, useEffect } from 'react'
+import { ShoppingCartOutlined, RobotOutlined, LoadingOutlined, ReloadOutlined, DownloadOutlined, CloseOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
+import { message } from 'antd'
+import { getAllCharms } from '../api/charmAPI'
 
 type Accessory = {
   id: number
   name: string
   image: string
+  price?: number
 }
 
 type PlacedAccessory = Accessory & {
@@ -103,20 +106,60 @@ const CustomDesign = () => {
   const [isDraggingPlaced, setIsDraggingPlaced] = useState(false)
   const canvasRef = useRef<HTMLDivElement | null>(null)
 
-  // Charms data
-  const charms: Accessory[] = [
-    { id: 1, name: 'Charm 1', image: '/accessories/phukien1.jpg' },
-    { id: 2, name: 'Charm 2', image: '/accessories/phukien2.jpg' },
-    { id: 3, name: 'Charm 3', image: '/accessories/phukien3.jpg' },
-    { id: 4, name: 'Charm 4', image: '/accessories/phukien4.jpg' },
-    { id: 5, name: 'Charm 5', image: '/accessories/phukien5.jpg' },
-    { id: 6, name: 'Charm 6', image: '/accessories/phukien6.jpg' },
-  ]
+  // State for loaded charms and templates
+  const [charms, setCharms] = useState<Accessory[]>([])
+  const [templates, setTemplates] = useState<Accessory[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Templates data (Jewelry)
-  const templates: Accessory[] = [
-    { id: 101, name: 'Trang sức', image: '/accessories/mauthietke.jpg' },
-  ]
+  // Pagination state
+  const [charmPage, setCharmPage] = useState(1)
+  const [templatePage, setTemplatePage] = useState(1)
+  const charmsPerPage = 6
+  const templatesPerPage = 2
+
+  // Load charms and templates from API
+  useEffect(() => {
+    const loadCharms = async () => {
+      setLoading(true)
+      try {
+        const data = await getAllCharms()
+        
+        // Filter charms (category = 'charm') and templates (category = 'template')
+        const charmList = data
+          .filter(item => item.category === 'charm')
+          .map((item, index) => ({
+            id: index + 1,
+            name: item.name,
+            image: item.imageUrl || '/placeholder.svg',
+            price: item.price
+          }))
+        
+        const templateList = data
+          .filter(item => item.category === 'template')
+          .map((item, index) => ({
+            id: 100 + index + 1,
+            name: item.name,
+            image: item.imageUrl || '/placeholder.svg',
+            price: item.price
+          }))
+        
+        setCharms(charmList)
+        setTemplates(templateList)
+        
+        // Set first template as default if available
+        if (templateList.length > 0) {
+          setSelectedTemplate(templateList[0].image)
+        }
+      } catch (err: any) {
+        message.error(err?.response?.data?.message || 'Không tải được danh sách charm')
+        console.error('Load charms error:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadCharms()
+  }, [])
 
   const resetDesign = () => {
     setEnhancedImageUrl(null)
@@ -467,15 +510,38 @@ const CustomDesign = () => {
               overflowY: 'auto',
               backgroundColor: '#fafafa'
             }}>
-              {activeTab === 'accessories' ? (
+              {loading ? (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  minHeight: '300px'
+                }}>
+                  <LoadingOutlined style={{ fontSize: '2rem', color: '#000' }} />
+                </div>
+              ) : activeTab === 'accessories' ? (
                 <div>
               {/* Charms Grid */}
+              {charms.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '3rem 1rem',
+                  color: '#999',
+                  fontSize: '0.875rem'
+                }}>
+                  Chưa có phụ kiện nào
+                </div>
+              ) : (
+                <>
               <div style={{ 
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '1rem'
+                gap: '1rem',
+                marginBottom: '2rem'
               }}>
-                {charms.map((charm) => (
+                {charms
+                  .slice((charmPage - 1) * charmsPerPage, charmPage * charmsPerPage)
+                  .map((charm) => (
                   <div 
                     key={charm.id}
                     draggable={!enhancedImageUrl}
@@ -489,15 +555,12 @@ const CustomDesign = () => {
                     style={{
                       backgroundColor: '#ffffff',
                       borderRadius: '8px',
-                      aspectRatio: '1',
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      flexDirection: 'column',
                       cursor: enhancedImageUrl ? 'not-allowed' : 'grab',
                       transition: 'all 0.3s ease',
                       border: selectedItem?.id === charm.id ? '2px solid #666' : '1px solid #e0e0e0',
                       overflow: 'hidden',
-                      padding: '0.5rem',
                       opacity: draggedItem?.id === charm.id ? 0.5 : 1,
                       position: 'relative',
                       boxShadow: selectedItem?.id === charm.id ? '0 4px 12px rgba(0, 0, 0, 0.1)' : 'none'
@@ -517,67 +580,159 @@ const CustomDesign = () => {
                       }
                     }}
                   >
-                    <img
-                      src={charm.image}
-                      alt={charm.name}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                      onError={(e) => {
-                        const el = e.target as HTMLImageElement
-                        if (!el) return
-                        el.style.display = 'none'
-                        const parent = el.parentNode as HTMLElement
-                        if (parent) {
-                          parent.innerHTML = `
-                            <div style="
-                              width: 100%;
-                              height: 100%;
-                              background-color: #f5f5f5;
-                              display: flex;
-                              align-items: center;
-                              justify-content: center;
-                              font-size: 0.75rem;
-                              color: #999;
-                              font-weight: 300;
-                              letter-spacing: 1px;
-                            ">
-                              ${charm.name}
-                            </div>
-                          `
-                        }
-                      }}
-                    />
+                    <div style={{ 
+                      aspectRatio: '1', 
+                      overflow: 'hidden',
+                      padding: '0.5rem'
+                    }}>
+                      <img
+                        src={charm.image}
+                        alt={charm.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          const el = e.target as HTMLImageElement
+                          if (!el) return
+                          el.style.display = 'none'
+                          const parent = el.parentNode as HTMLElement
+                          if (parent) {
+                            parent.innerHTML = `
+                              <div style="
+                                width: 100%;
+                                height: 100%;
+                                background-color: #f5f5f5;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 0.75rem;
+                                color: #999;
+                                font-weight: 300;
+                                letter-spacing: 1px;
+                              ">
+                                No Image
+                              </div>
+                            `
+                          }
+                        }}
+                      />
+                    </div>
+                    {charm.price !== undefined && (
+                      <div style={{
+                        padding: '0.75rem',
+                        borderTop: '1px solid #e0e0e0',
+                        textAlign: 'center',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#000'
+                      }}>
+                        {charm.price.toLocaleString('vi-VN')} ₫
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+
+              {/* Charm Pagination */}
+              {Math.ceil(charms.length / charmsPerPage) > 1 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  marginTop: '1.5rem'
+                }}>
+                  <button
+                    onClick={() => setCharmPage(p => Math.max(1, p - 1))}
+                    disabled={charmPage === 1}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: charmPage === 1 ? '#f5f5f5' : '#fff',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '4px',
+                      cursor: charmPage === 1 ? 'not-allowed' : 'pointer',
+                      opacity: charmPage === 1 ? 0.5 : 1
+                    }}
+                  >
+                    <LeftOutlined style={{ fontSize: '0.75rem' }} />
+                  </button>
+                  
+                  {Array.from({ length: Math.ceil(charms.length / charmsPerPage) }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCharmPage(page)}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        backgroundColor: charmPage === page ? '#000' : '#fff',
+                        color: charmPage === page ? '#fff' : '#000',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: charmPage === page ? '600' : '400',
+                        minWidth: '2rem'
+                      }}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  
+                  <button
+                    onClick={() => setCharmPage(p => Math.min(Math.ceil(charms.length / charmsPerPage), p + 1))}
+                    disabled={charmPage === Math.ceil(charms.length / charmsPerPage)}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: charmPage === Math.ceil(charms.length / charmsPerPage) ? '#f5f5f5' : '#fff',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '4px',
+                      cursor: charmPage === Math.ceil(charms.length / charmsPerPage) ? 'not-allowed' : 'pointer',
+                      opacity: charmPage === Math.ceil(charms.length / charmsPerPage) ? 0.5 : 1
+                    }}
+                  >
+                    <RightOutlined style={{ fontSize: '0.75rem' }} />
+                  </button>
+                </div>
+              )}
+              </>
+              )}
                 </div>
               ) : (
                 <div>
               {/* Templates Grid */}
+              {templates.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '3rem 1rem',
+                  color: '#999',
+                  fontSize: '0.875rem'
+                }}>
+                  Chưa có mẫu trang sức nào
+                </div>
+              ) : (
+                <>
               <div style={{ 
                 display: 'grid',
                 gridTemplateColumns: '1fr',
-                gap: '1rem'
+                gap: '1rem',
+                marginBottom: '2rem'
               }}>
-                {templates.map((template) => (
+                {templates
+                  .slice((templatePage - 1) * templatesPerPage, templatePage * templatesPerPage)
+                  .map((template) => (
                   <div 
                     key={template.id}
                     onClick={() => setSelectedTemplate(template.image)}
                     style={{
                       backgroundColor: '#ffffff',
                       borderRadius: '8px',
-                      aspectRatio: '1',
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      flexDirection: 'column',
                       cursor: 'pointer',
                       transition: 'all 0.3s ease',
                       border: selectedTemplate === template.image ? '2px solid #666' : '1px solid #e0e0e0',
                       overflow: 'hidden',
-                      padding: '0.5rem',
                       boxShadow: selectedTemplate === template.image ? '0 4px 12px rgba(0, 0, 0, 0.1)' : 'none'
                     }}
                     onMouseEnter={(e) => {
@@ -593,42 +748,123 @@ const CustomDesign = () => {
                       }
                     }}
                   >
-                    <img
-                      src={template.image}
-                      alt={template.name}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                      onError={(e) => {
-                        const el = e.target as HTMLImageElement
-                        if (!el) return
-                        el.style.display = 'none'
-                        const parent = el.parentNode as HTMLElement
-                        if (parent) {
-                          parent.innerHTML = `
-                            <div style="
-                              width: 100%;
-                              height: 100%;
-                              background-color: #f5f5f5;
-                              display: flex;
-                              align-items: center;
-                              justify-content: center;
-                              font-size: 0.75rem;
-                              color: #999;
-                              font-weight: 300;
-                              letter-spacing: 1px;
-                            ">
-                              ${template.name}
-                            </div>
-                          `
-                        }
-                      }}
-                    />
+                    <div style={{ 
+                      aspectRatio: '1', 
+                      overflow: 'hidden',
+                      padding: '0.5rem'
+                    }}>
+                      <img
+                        src={template.image}
+                        alt={template.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          const el = e.target as HTMLImageElement
+                          if (!el) return
+                          el.style.display = 'none'
+                          const parent = el.parentNode as HTMLElement
+                          if (parent) {
+                            parent.innerHTML = `
+                              <div style="
+                                width: 100%;
+                                height: 100%;
+                                background-color: #f5f5f5;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 0.75rem;
+                                color: #999;
+                                font-weight: 300;
+                                letter-spacing: 1px;
+                              ">
+                                No Image
+                              </div>
+                            `
+                          }
+                        }}
+                      />
+                    </div>
+                    {template.price !== undefined && (
+                      <div style={{
+                        padding: '0.75rem',
+                        borderTop: '1px solid #e0e0e0',
+                        textAlign: 'center',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#000'
+                      }}>
+                        {template.price.toLocaleString('vi-VN')} ₫
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+
+              {/* Template Pagination */}
+              {Math.ceil(templates.length / templatesPerPage) > 1 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  marginTop: '1.5rem'
+                }}>
+                  <button
+                    onClick={() => setTemplatePage(p => Math.max(1, p - 1))}
+                    disabled={templatePage === 1}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: templatePage === 1 ? '#f5f5f5' : '#fff',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '4px',
+                      cursor: templatePage === 1 ? 'not-allowed' : 'pointer',
+                      opacity: templatePage === 1 ? 0.5 : 1
+                    }}
+                  >
+                    <LeftOutlined style={{ fontSize: '0.75rem' }} />
+                  </button>
+                  
+                  {Array.from({ length: Math.ceil(templates.length / templatesPerPage) }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setTemplatePage(page)}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        backgroundColor: templatePage === page ? '#000' : '#fff',
+                        color: templatePage === page ? '#fff' : '#000',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: templatePage === page ? '600' : '400',
+                        minWidth: '2rem'
+                      }}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  
+                  <button
+                    onClick={() => setTemplatePage(p => Math.min(Math.ceil(templates.length / templatesPerPage), p + 1))}
+                    disabled={templatePage === Math.ceil(templates.length / templatesPerPage)}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: templatePage === Math.ceil(templates.length / templatesPerPage) ? '#f5f5f5' : '#fff',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '4px',
+                      cursor: templatePage === Math.ceil(templates.length / templatesPerPage) ? 'not-allowed' : 'pointer',
+                      opacity: templatePage === Math.ceil(templates.length / templatesPerPage) ? 0.5 : 1
+                    }}
+                  >
+                    <RightOutlined style={{ fontSize: '0.75rem' }} />
+                  </button>
+                </div>
+              )}
+              </>
+              )}
                 </div>
               )}
             </div>
