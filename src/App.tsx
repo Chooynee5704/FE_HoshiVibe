@@ -1,9 +1,9 @@
 // src/App.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Modal } from 'antd'
 import {
   Header, HeroSection, ProductCategories, ChatWidget, Footer,
-  About, Products, Login, Register, Membership, Search, ProductDetail, Cart, Profile, Orders, OrderDetail as OrderDetailPage
+  About, Products, Login, Register, Search, ProductDetail, Cart, Profile, Orders, OrderDetail as OrderDetailPage
 } from './components'
 import CustomDesign from './components/CustomDesign'
 import type { PageKey } from './types/navigation'
@@ -26,6 +26,25 @@ import type { CartItem as UICartItem } from './components/Cart'
 type IdLike = string | number
 type NavParams = { id?: IdLike; category?: string }
 
+const PLACEHOLDER_IMAGE = '/placeholder.jpg'
+
+const mapOrderDetailsToCartItems = (orderDetails: OrderDetail[] = []): UICartItem[] => {
+  return orderDetails.map((detail) => {
+    const customDesignId = detail.customDesignId || detail.customDesign_Id
+    const productId = detail.productId || detail.cProduct_Id
+
+    return {
+      id: customDesignId || productId || detail.orderDetailId || detail.orderDetail_Id || '',
+      name: detail.customDesign?.name || detail.product?.name || 'San pham',
+      description: detail.customDesign?.description || detail.product?.description,
+      price: detail.unitPrice,
+      image: detail.customDesign?.aiImageUrl || detail.product?.imageUrl || detail.product?.imageURL || PLACEHOLDER_IMAGE,
+      quantity: detail.quantity,
+      orderDetailId: detail.orderDetailId || detail.orderDetail_Id,
+    }
+  })
+}
+
 function App() {
   const [currentPage, setCurrentPage] = useState<PageKey>('home')
   const [isPageTransitioning, setIsPageTransitioning] = useState(false)
@@ -42,6 +61,37 @@ function App() {
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null)
   const [isLoadingCart, setIsLoadingCart] = useState(false)
 
+  const loadCart = useCallback(async () => {
+    const user = getCurrentUser()
+    if (!user) {
+      setCartItems([])
+      setCartCount(0)
+      setCurrentOrder(null)
+      setIsLoadingCart(false)
+      return
+    }
+
+    setIsLoadingCart(true)
+    try {
+      const order = await getPendingOrder()
+      console.log('Pending order loaded:', order)
+      setCurrentOrder(order)
+
+      if (order?.orderDetails?.length) {
+        const items = mapOrderDetailsToCartItems(order.orderDetails)
+        setCartItems(items)
+        setCartCount(items.reduce((sum, item) => sum + item.quantity, 0))
+      } else {
+        setCartItems([])
+        setCartCount(0)
+      }
+    } catch (err) {
+      console.log('No pending order found or error loading cart:', err)
+    } finally {
+      setIsLoadingCart(false)
+    }
+  }, [])
+
   // Check if user is admin and redirect to admin page
   useEffect(() => {
     const user = getCurrentUser()
@@ -53,49 +103,17 @@ function App() {
 
   // Load user's pending order (cart) on mount
   useEffect(() => {
-    const loadCart = async () => {
-      const user = getCurrentUser()
-      if (!user) return
+    loadCart()
+  }, [loadCart])
 
-      setIsLoadingCart(true)
-      try {
-        const order = await getPendingOrder()
-        console.log('Pending order loaded:', order)
-        setCurrentOrder(order)
-        
-        // Convert order details to cart items
-        if (order?.orderDetails) {
-          console.log('Order details:', order.orderDetails)
-          const items: UICartItem[] = order.orderDetails.map((detail: OrderDetail) => {
-            console.log('Mapping detail:', detail)
-            
-            // Check if this is a custom design
-            const customDesignId = detail.customDesignId || detail.customDesign_Id
-            
-            return {
-              id: customDesignId || detail.productId || detail.cProduct_Id || '',
-              name: detail.customDesign?.name || detail.product?.name || 'Sản phẩm',
-              description: detail.customDesign?.description || detail.product?.description,
-              price: detail.unitPrice,
-              image: detail.customDesign?.aiImageUrl || detail.product?.imageUrl || detail.product?.imageURL || '/placeholder.jpg',
-              quantity: detail.quantity,
-              orderDetailId: detail.orderDetailId || detail.orderDetail_Id, // Backend uses camelCase
-            }
-          })
-          console.log('Mapped cart items:', items)
-          setCartItems(items)
-          setCartCount(items.reduce((s, i) => s + i.quantity, 0))
-        }
-      } catch (err) {
-        console.log('No pending order found or error loading cart:', err)
-        // If no pending order exists, it's fine - cart is empty
-      } finally {
-        setIsLoadingCart(false)
-      }
+  useEffect(() => {
+    const handleAuthChange = () => {
+      loadCart()
     }
 
-    loadCart()
-  }, [])
+    window.addEventListener('authChanged', handleAuthChange)
+    return () => window.removeEventListener('authChanged', handleAuthChange)
+  }, [loadCart])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -129,7 +147,6 @@ function App() {
 
       if (path === 'custom-design') setCurrentPage('custom-design')
       else if (path === 'products') setCurrentPage('products')
-      else if (path === 'membership') setCurrentPage('membership')
       else if (path === 'about') setCurrentPage('about')
       else if (path === 'admin') setCurrentPage('admin')
       else if (path === 'login') setCurrentPage('login')
@@ -180,8 +197,6 @@ function App() {
     }, 200)
   }
 
-  const calcCount = (items: UICartItem[]) => items.reduce((s, i) => s + i.quantity, 0)
-
   const handleAddToCart = async (
     product: { id: IdLike; name: string; price: number; image: string },
     quantity: number = 1
@@ -212,28 +227,7 @@ function App() {
       const createdDetail = await addOrderDetail(orderDetailPayload)
       
       console.log('OrderDetail created:', createdDetail)
-
-      // Reload cart
-      try {
-        const updatedOrder = await getPendingOrder()
-        setCurrentOrder(updatedOrder)
-        
-        if (updatedOrder?.orderDetails) {
-          const items: UICartItem[] = updatedOrder.orderDetails.map((detail: OrderDetail) => ({
-            id: detail.productId || detail.cProduct_Id || '',
-            name: detail.product?.name || 'Sản phẩm',
-            description: detail.product?.description,
-            price: detail.unitPrice,
-            image: detail.product?.imageUrl || detail.product?.imageURL || '/placeholder.jpg',
-            quantity: detail.quantity,
-            orderDetailId: detail.orderDetailId || detail.orderDetail_Id, // Backend uses camelCase
-          }))
-          setCartItems(items)
-          setCartCount(calcCount(items))
-        }
-      } catch (err) {
-        console.log('Could not reload cart, but item was added')
-      }
+      await loadCart()
 
     } catch (err: any) {
       console.error('Error adding to cart:', err)
@@ -248,13 +242,10 @@ function App() {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'custom-design':
-        return <CustomDesign />
+        return <CustomDesign onCartUpdated={loadCart} />
 
       case 'products':
         return <Products onNavigate={handleNavigation} onAddToCart={handleAddToCart} />
-
-      case 'membership':
-        return <Membership />
 
       case 'about':
         return <About />
@@ -331,25 +322,8 @@ function App() {
                   0
                 )
 
-                console.log('Update successful, reloading cart...')
-                // Reload cart
-                const updatedOrder = await getPendingOrder()
-                setCurrentOrder(updatedOrder)
-                
-                if (updatedOrder?.orderDetails) {
-                  const items: UICartItem[] = updatedOrder.orderDetails.map((detail: OrderDetail) => ({
-                    id: detail.productId || detail.cProduct_Id || '',
-                    name: detail.product?.name || 'Sản phẩm',
-                    description: detail.product?.description,
-                    price: detail.unitPrice,
-                    image: detail.product?.imageUrl || detail.product?.imageURL || '/placeholder.jpg',
-                    quantity: detail.quantity,
-                    orderDetailId: detail.orderDetailId || detail.orderDetail_Id, // Backend uses camelCase
-                  }))
-                  setCartItems(items)
-                  setCartCount(calcCount(items))
-                  console.log('Cart updated successfully')
-                }
+                await loadCart()
+                console.log('Cart updated successfully')
               } catch (err) {
                 console.error('Error updating quantity:', err)
                 Modal.error({
@@ -380,29 +354,8 @@ function App() {
                 await deleteOrderDetail(item.orderDetailId)
 
                 console.log('Delete successful, reloading cart...')
-                // Reload cart
-                const updatedOrder = await getPendingOrder()
-                setCurrentOrder(updatedOrder)
-                
-                if (updatedOrder?.orderDetails) {
-                  const items: UICartItem[] = updatedOrder.orderDetails.map((detail: OrderDetail) => ({
-                    id: detail.productId || detail.cProduct_Id || '',
-                    name: detail.product?.name || 'Sản phẩm',
-                    description: detail.product?.description,
-                    price: detail.unitPrice,
-                    image: detail.product?.imageUrl || detail.product?.imageURL || '/placeholder.jpg',
-                    quantity: detail.quantity,
-                    orderDetailId: detail.orderDetailId || detail.orderDetail_Id, // Backend uses camelCase
-                  }))
-                  setCartItems(items)
-                  setCartCount(calcCount(items))
-                  console.log('Cart updated after delete')
-                } else {
-                  // No items left
-                  setCartItems([])
-                  setCartCount(0)
-                  console.log('Cart is now empty')
-                }
+                await loadCart()
+                console.log('Cart updated after delete')
               } catch (err) {
                 console.error('Error removing item:', err)
                 Modal.error({
@@ -455,6 +408,10 @@ function App() {
 }
 
 export default App
+
+
+
+
 
 
 

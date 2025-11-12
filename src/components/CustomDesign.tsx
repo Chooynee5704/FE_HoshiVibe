@@ -19,6 +19,10 @@ type PlacedAccessory = Accessory & {
   height: number
 }
 
+type CustomDesignProps = {
+  onCartUpdated?: () => Promise<void> | void
+}
+
 const WEBHOOK_ENDPOINT = 'https://d3ucnn9kcaw68r.cloudfront.net/n8n/webhook/nano-banana'
 const AI_PROMPT = 'This image shows a necklace on white background with accessory images (charms) placed on it. The accessories also have white backgrounds. Please Seamlessly blend/integrate the accessories onto the necklace so they look naturally crafted together.'
 
@@ -94,7 +98,7 @@ const blobToDataUrl = (blob: Blob): Promise<string> => {
   })
 }
 
-const CustomDesign = () => {
+const CustomDesign = ({ onCartUpdated }: CustomDesignProps) => {
   const [selectedItem, setSelectedItem] = useState<Accessory | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<string>('/accessories/mauthietke.jpg')
   const [draggedItem, setDraggedItem] = useState<Accessory | null>(null)
@@ -459,6 +463,9 @@ const CustomDesign = () => {
 
       console.log('Adding to cart:', orderDetailData)
       await addOrderDetail(orderDetailData)
+      if (onCartUpdated) {
+        await onCartUpdated()
+      }
 
       message.success({ content: 'Đã thêm vào giỏ hàng!', key: 'addToCart' })
       
@@ -1522,4 +1529,5 @@ const CustomDesign = () => {
 }
 
 export default CustomDesign
+
 

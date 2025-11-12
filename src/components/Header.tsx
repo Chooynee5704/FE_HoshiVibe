@@ -254,33 +254,6 @@ const Header = ({ onNavigate, currentPage = 'home', cartCount = 0 }: HeaderProps
             >
               TÙY CHỈNH THIẾT KẾ
             </button>
-            
-            <button 
-              onClick={() => handleNavigation('membership')}
-              className="nav-item" 
-              style={{ 
-                border: 'none', 
-                background: 'none',
-                color: currentPage === 'membership' ? 'black' : '#6b7280',
-                fontWeight: currentPage === 'membership' ? '600' : '400',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                padding: '0.5rem 1rem'
-              }}
-              onMouseEnter={(e) => {
-                if (currentPage !== 'membership') {
-                  e.currentTarget.style.color = 'black'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (currentPage !== 'membership') {
-                  e.currentTarget.style.color = '#6b7280'
-                }
-              }}
-            >
-              GÓI THÀNH VIÊN
-            </button>
-            
             <button 
               onClick={() => handleNavigation('about')}
               className="nav-item" 
