@@ -1,5 +1,7 @@
 "use client"
 
+import { Package, ShoppingCart, Users, BarChart3 } from "lucide-react"
+
 export type ItemKey = "products" | "orders" | "customers" | "reports" | "settings"
 
 export default function Sidebar({
@@ -10,45 +12,68 @@ export default function Sidebar({
   onNavigate?: (key: ItemKey) => void
 }) {
   const itemBase =
-    "relative block w-full text-left px-4 py-3 text-sm transition-all duration-150 outline-none"
-  const itemInactive = "text-gray-800 hover:bg-white/40"
+    "relative flex items-center gap-3 w-full text-left px-6 py-4 text-sm font-medium transition-all duration-200 outline-none group"
+  const itemInactive = "text-gray-700 hover:bg-gray-100"
   const itemActive =
-    "text-gray-900 bg-[#EAF5E8] shadow-sm " +
-    "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 " +
-    "before:w-1.5 before:bg-[#A7C98A]"
+    "text-white bg-black font-bold"
 
-  const Item = ({ k, label }: { k: ItemKey; label: string }) => (
-    <button
-      type="button"
-      className={`${itemBase} ${active === k ? itemActive : itemInactive}`}
-      onClick={() => onNavigate?.(k)}
-    >
-      {label}
-    </button>
-  )
+  const icons: Record<ItemKey, any> = {
+    products: Package,
+    orders: ShoppingCart,
+    customers: Users,
+    reports: BarChart3,
+    settings: BarChart3,
+  }
+
+  const Item = ({ k, label }: { k: ItemKey; label: string }) => {
+    const Icon = icons[k]
+    return (
+      <button
+        type="button"
+        className={`${itemBase} ${active === k ? itemActive : itemInactive}`}
+        onClick={() => onNavigate?.(k)}
+      >
+        {Icon && <Icon className="w-5 h-5" />}
+        <span>{label}</span>
+      </button>
+    )
+  }
 
   return (
     <aside
-      className="hidden md:flex w-64 min-h-screen flex-col bg-[#EBCCCC] border-r border-black/10"
+      className="hidden md:flex w-72 min-h-screen flex-col bg-white border-r border-gray-200"
       aria-label="Admin sidebar"
     >
       {/* Logo */}
-      <div className="px-6 pt-6 pb-4">
-        <img src="../../../public/images/logo.png" alt="Logo hoshi_vibe" />
+      <div className="px-6 pt-8 pb-6 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-black flex items-center justify-center rounded">
+            <span className="text-white font-bold text-xl">H</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-black">HoshiVibe</h1>
+            <p className="text-xs text-gray-600">Admin Dashboard</p>
+          </div>
+        </div>
       </div>
 
       {/* Group title */}
-      <div className="px-6 pb-2 text-[11px] tracking-widest font-semibold uppercase text-gray-800/90">
+      <div className="px-6 pt-6 pb-3 text-xs tracking-widest font-bold uppercase text-gray-500">
         Quản lý
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 px-2 space-y-1">
+      <nav className="flex-1 px-3 space-y-1">
         <Item k="products" label="Quản lý sản phẩm" />
         <Item k="orders" label="Quản lý đơn hàng" />
         <Item k="customers" label="Quản lý khách hàng" />
-        <Item k="reports" label="Thống kê" />
+        <Item k="reports" label="Thống kê & Báo cáo" />
       </nav>
+
+      {/* Footer */}
+      <div className="px-6 py-4 border-t border-gray-200">
+        <p className="text-xs text-gray-500">© 2025 HoshiVibe</p>
+      </div>
     </aside>
   )
 }

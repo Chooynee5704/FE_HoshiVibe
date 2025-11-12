@@ -102,37 +102,46 @@ export default function ProductManagementPage({ onCreateNew }: { onCreateNew?: (
     n.toLocaleString("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 })
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-white">
       <main className="flex-1 flex flex-col">
         {/* Page Title */}
-        <div className="px-6 py-6">
-          <h1 className="text-2xl font-semibold text-gray-800">Sản phẩm</h1>
+        <div className="px-8 py-8 border-b border-gray-200">
+          <h1 className="text-3xl font-bold text-black">Quản lý sản phẩm</h1>
+          <p className="text-sm text-gray-600 mt-1">Quản lý toàn bộ sản phẩm của cửa hàng</p>
         </div>
 
         {/* Tabs and Actions */}
-        <div className="px-6 pb-4">
+        <div className="px-8 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {["best-selling", "popular", "newest"].map((key) => (
                 <button
                   key={key}
                   onClick={() => setActiveTab(key)}
-                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                    activeTab === key ? "text-blue-600 bg-blue-50" : "text-gray-600 hover:bg-gray-100"
+                  className={`px-5 py-2 text-sm font-medium rounded transition-all ${
+                    activeTab === key 
+                      ? "text-white bg-blue-600 hover:bg-blue-700" 
+                      : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
                   }`}
                 >
                   {key === "best-selling" ? "Bán chạy" : key === "popular" ? "Phổ biến" : "Mới nhất"}
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2">
-              <Button type="primary" onClick={onCreateNew}>Thêm sản phẩm</Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                type="primary" 
+                onClick={onCreateNew}
+                className="h-10"
+              >
+                + Thêm sản phẩm
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 px-6 pb-6">
+        <div className="flex-1 px-8 py-8">
           <div className="flex gap-6">
             <CategoriesSidebar
               categories={categories}
@@ -144,14 +153,14 @@ export default function ProductManagementPage({ onCreateNew }: { onCreateNew?: (
             <div className="flex-1">
               {loading ? (
                 <div className="flex items-center justify-center h-64">
-                  <Spin />
+                  <Spin size="large" />
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-6">
                   {products.map((product) => (
                     <div
                       key={product.id}
-                      className="relative bg-white rounded-lg border overflow-hidden hover:shadow-lg transition-shadow border-gray-200 cursor-pointer"
+                      className="relative bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all cursor-pointer"
                       onClick={() => { setDetailProduct(product); setDetailOpen(true) }}
                       role="button"
                       tabIndex={0}
@@ -171,15 +180,15 @@ export default function ProductManagementPage({ onCreateNew }: { onCreateNew?: (
                       </div>
 
                       <div className="p-4">
-                        <h3 className="text-sm text-gray-600 mb-2 line-clamp-2">{product.name}</h3>
-                        <p className="text-lg font-semibold text-gray-800 mb-3">{formatVND(product.price)}</p>
+                        <h3 className="text-sm text-gray-600 mb-2 line-clamp-2 font-medium">{product.name}</h3>
+                        <p className="text-xl font-bold text-gray-900 mb-3">{formatVND(product.price)}</p>
 
                         <div className="flex items-center justify-between">
-                          <span className={`px-2 py-1 text-xs border rounded-md font-medium ${statusStyle(product.status)}`}>
+                          <span className={`px-3 py-1 text-xs border font-semibold uppercase rounded ${statusStyle(product.status)}`}>
                             {product.status}
                           </span>
                           <span className="text-sm text-gray-600">
-                            Tồn kho: <span className="font-semibold text-gray-800">{product.stock}</span>
+                            Kho: <span className="font-semibold text-gray-900">{product.stock}</span>
                           </span>
                         </div>
                       </div>
@@ -188,14 +197,14 @@ export default function ProductManagementPage({ onCreateNew }: { onCreateNew?: (
                 </div>
               )}
 
-              {/* Pagination (mock) */}
-              <div className="flex items-center justify-center gap-2 mt-8">
+              {/* Pagination */}
+              <div className="flex items-center justify-center gap-3 mt-8">
                 <button className="p-2 hover:bg-gray-100 rounded-lg">
                   <ChevronRight className="w-5 h-5 text-gray-600 rotate-180" />
                 </button>
                 <button className="w-10 h-10 bg-blue-600 text-white rounded-lg font-medium">1</button>
-                <button className="w-10 h-10 hover:bg-gray-100 text-gray-600 rounded-lg font-medium">2</button>
-                <button className="w-10 h-10 hover:bg-gray-100 text-gray-600 rounded-lg font-medium">3</button>
+                <button className="w-10 h-10 hover:bg-gray-100 text-gray-700 rounded-lg font-medium">2</button>
+                <button className="w-10 h-10 hover:bg-gray-100 text-gray-700 rounded-lg font-medium">3</button>
                 <button className="p-2 hover:bg-gray-100 rounded-lg">
                   <ChevronRight className="w-5 h-5 text-gray-600" />
                 </button>

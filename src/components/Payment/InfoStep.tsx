@@ -1,13 +1,15 @@
 "use client"
 
-import { useState, type KeyboardEvent } from "react"
-import { Button, Card, Divider, Form, Input, Typography } from "antd"
+import { useState } from "react"
+import { Button, Card, Divider, Form, Input, Typography, message, Tag } from "antd"
+import { validateVoucher, type Voucher } from "../../api/voucherAPI"
 const { Title, Text } = Typography
 
-export type PaymentMethod = "vietqr" | "zalopay" | "momo" | "cod"
+export type PaymentMethod = "vnpay"
+
 type CartItem = { id:string; name:string; price:number; image:string; quantity:number }
 
-/** Payment options with proper a11y (radiogroup) + Tailwind UI */
+/** Payment options with VNPay only */
 function PaymentOptionsTailwind({
   payment,
   onChange,
@@ -16,28 +18,11 @@ function PaymentOptionsTailwind({
   onChange: (m: PaymentMethod) => void
 }) {
   const opts: { key: PaymentMethod; label: string; icon: string; color: string }[] = [
-    { key: "vietqr",  label: "VietQR",              icon: "QR", color: "bg-rose-600"    },
-    { key: "zalopay", label: "ZaloPay",             icon: "ZL", color: "bg-sky-500"     },
-    { key: "momo",    label: "MoMo",                icon: "MO", color: "bg-fuchsia-700" },
-    { key: "cod",     label: "Thanh toán tiền mặt", icon: "$",  color: "bg-emerald-500" },
+    { key: "vnpay",  label: "VNPay",  icon: "VN", color: "bg-blue-600" },
   ]
 
-  const handleKey = (e: KeyboardEvent<HTMLButtonElement>, current: PaymentMethod) => {
-    const idx = opts.findIndex(o => o.key === current)
-    if (e.key === "ArrowRight") {
-      e.preventDefault()
-      onChange(opts[(idx + 1) % opts.length].key)
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault()
-      onChange(opts[(idx - 1 + opts.length) % opts.length].key)
-    } else if (e.key === " " || e.key === "Enter") {
-      e.preventDefault()
-      onChange(current)
-    }
-  }
-
   return (
-    <div role="radiogroup" aria-label="Phương thức thanh toán" className="grid grid-cols-2 gap-3">
+    <div role="radiogroup" aria-label="Phương thức thanh toán" className="grid grid-cols-1 gap-3">
       {opts.map(opt => {
         const active = payment === opt.key
         return (
@@ -46,8 +31,7 @@ function PaymentOptionsTailwind({
             type="button"
             role="radio"
             aria-checked={active}
-            tabIndex={active ? 0 : -1}
-            onKeyDown={(e) => handleKey(e, opt.key)}
+            tabIndex={0}
             onClick={() => onChange(opt.key)}
             className={[
               "flex items-center gap-3 px-4 py-3 border rounded-xl cursor-pointer transition-all outline-none",
@@ -74,7 +58,7 @@ function PaymentOptionsTailwind({
 
 export default function InfoStep({
   items,
-  defaultPay = "vietqr",
+  defaultPay = "vnpay",
   overrideTotal,
   onNext,
   onBackToCart,
@@ -85,20 +69,64 @@ export default function InfoStep({
   onNext: (args: {
     values: { name:string; phone:string; address:string; note?:string }
     pay: PaymentMethod
+    voucherCode?: string
   }) => void
   onBackToCart: () => void
 }) {
   const [form] = Form.useForm<{name:string; phone:string; address:string; note?:string}>()
   const [pay, setPay] = useState<PaymentMethod>(defaultPay)
+  const [voucherCode, setVoucherCode] = useState<string>("")
+  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null)
+  const [isValidatingVoucher, setIsValidatingVoucher] = useState(false)
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const shipping = subtotal > 0 && subtotal < 300000 ? 30000 : 0
-  const grandTotal = typeof overrideTotal === "number" ? overrideTotal : subtotal + shipping
+  const totalBeforeVoucher = subtotal + shipping
+  
+  // Calculate discount if voucher is applied
+  const discountAmount = appliedVoucher ? totalBeforeVoucher * appliedVoucher.discountAmount : 0
+  const grandTotal = totalBeforeVoucher - discountAmount
+  
   const formatVND = (n:number) => n.toLocaleString("vi-VN") + " VNĐ"
+
+  const handleApplyVoucher = async () => {
+    if (!voucherCode.trim()) {
+      message.warning("Vui lòng nhập mã giảm giá")
+      return
+    }
+
+    setIsValidatingVoucher(true)
+    try {
+      const result = await validateVoucher(voucherCode.trim())
+      
+      if (result.isValid && result.voucher) {
+        setAppliedVoucher(result.voucher)
+        message.success(`Áp dụng mã giảm giá thành công! Giảm ${(result.voucher.discountAmount * 100).toFixed(0)}%`)
+      } else {
+        setAppliedVoucher(null)
+        message.error(result.message || "Mã giảm giá không hợp lệ")
+      }
+    } catch (error) {
+      console.error("Error validating voucher:", error)
+      message.error("Không thể xác thực mã giảm giá. Vui lòng thử lại.")
+    } finally {
+      setIsValidatingVoucher(false)
+    }
+  }
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null)
+    setVoucherCode("")
+    message.info("Đã xóa mã giảm giá")
+  }
 
   const submit = async () => {
     const values = await form.validateFields()
-    onNext({ values, pay })
+    onNext({ 
+      values, 
+      pay,
+      voucherCode: appliedVoucher?.code
+    })
   }
 
   return (
@@ -180,6 +208,48 @@ export default function InfoStep({
             </div>
           ))}
           <Divider />
+
+          {/* Voucher Input */}
+          <div className="mb-4">
+            <Text strong className="block mb-2">Mã giảm giá</Text>
+            {appliedVoucher ? (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Tag color="green">{appliedVoucher.code}</Tag>
+                    <Text type="secondary" className="block text-sm mt-1">
+                      {appliedVoucher.voucherName}
+                    </Text>
+                    <Text strong className="text-green-600">
+                      Giảm {(appliedVoucher.discountAmount * 100).toFixed(0)}%
+                    </Text>
+                  </div>
+                  <Button size="small" danger onClick={handleRemoveVoucher}>
+                    Xóa
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nhập mã giảm giá"
+                  value={voucherCode}
+                  onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                  onPressEnter={handleApplyVoucher}
+                />
+                <Button 
+                  onClick={handleApplyVoucher} 
+                  loading={isValidatingVoucher}
+                  type="default"
+                >
+                  Áp dụng
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <Divider />
+
           <div className="flex justify-between">
             <Text type="secondary">Tạm tính</Text>
             <Text>{formatVND(subtotal)}</Text>
@@ -188,6 +258,12 @@ export default function InfoStep({
             <Text type="secondary">Phí vận chuyển</Text>
             <Text>{formatVND(shipping)}</Text>
           </div>
+          {appliedVoucher && (
+            <div className="flex justify-between text-green-600">
+              <Text type="secondary">Giảm giá ({appliedVoucher.code})</Text>
+              <Text strong>-{formatVND(discountAmount)}</Text>
+            </div>
+          )}
           <div className="flex justify-between mt-2 font-bold">
             <Text strong>Tổng cộng</Text>
             <Text strong className="text-amber-500 text-lg">{formatVND(grandTotal)}</Text>

@@ -1,6 +1,9 @@
-import { SearchOutlined, ShoppingCartOutlined, UserOutlined } from '@ant-design/icons'
+import { SearchOutlined, ShoppingCartOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons'
 import { useState, useEffect } from 'react'
+import { Dropdown } from 'antd'
+import type { MenuProps } from 'antd'
 import type { PageKey } from '../types/navigation'
+import { getCurrentUser } from '../api/authApi'
 
 interface HeaderProps {
   onNavigate?: (page: PageKey) => void;
@@ -10,6 +13,7 @@ interface HeaderProps {
 
 const Header = ({ onNavigate, currentPage = 'home', cartCount = 0 }: HeaderProps) => {
   const [cartAnimation, setCartAnimation] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   // Listen for cart animation events
   useEffect(() => {
@@ -22,11 +26,113 @@ const Header = ({ onNavigate, currentPage = 'home', cartCount = 0 }: HeaderProps
     return () => window.removeEventListener('cartItemAdded', handleCartAnimation)
   }, [])
 
+  // Check login status
+  useEffect(() => {
+    const checkAuth = () => {
+      const user = getCurrentUser()
+      setIsLoggedIn(!!user)
+    }
+    
+    checkAuth()
+    
+    // Listen for auth changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'hv_user' || e.key === 'hv_token') {
+        checkAuth()
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also check on custom auth events
+    const handleAuthChange = () => checkAuth()
+    window.addEventListener('authChanged', handleAuthChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('authChanged', handleAuthChange)
+    }
+  }, [])
+
   const handleNavigation = (page: PageKey) => {
     if (onNavigate) {
       onNavigate(page);
     }
   };
+
+  const userMenuItems: MenuProps['items'] = [
+    {
+      key: 'profile',
+      label: 'Thông tin cá nhân',
+      icon: <UserOutlined />,
+    },
+    {
+      key: 'orders',
+      label: 'Đơn hàng của tôi',
+      icon: <ShoppingCartOutlined />,
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'logout',
+      label: 'Đăng xuất',
+      icon: <LogoutOutlined />,
+      danger: true,
+    },
+  ]
+
+  const handleUserMenuClick: MenuProps['onClick'] = ({ key, domEvent }) => {
+    if (domEvent) {
+      domEvent.preventDefault()
+      domEvent.stopPropagation()
+    }
+
+    if (key === 'profile') {
+      handleNavigation('profile')
+      return
+    }
+
+    if (key === 'orders') {
+      handleNavigation('orders' as PageKey)
+      return
+    }
+
+    if (key === 'logout') {
+      handleLogout(domEvent)
+    }
+  }
+
+  const handleLogout = (e?: any) => {
+    // Prevent event bubbling
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    
+    console.log('🔴 LOGOUT CLICKED - Starting logout process...')
+    console.log('🔴 BEFORE LOGOUT - Token:', localStorage.getItem('hv_token'))
+    console.log('🔴 BEFORE LOGOUT - User:', localStorage.getItem('hv_user'))
+    
+    // Remove specific auth items
+    localStorage.removeItem('hv_token')
+    localStorage.removeItem('hv_user')
+    
+    console.log('🟢 AFTER REMOVE - Token:', localStorage.getItem('hv_token'))
+    console.log('🟢 AFTER REMOVE - User:', localStorage.getItem('hv_user'))
+    
+    // Clear ALL localStorage
+    localStorage.clear()
+    window.dispatchEvent(new Event('authChanged'))
+    
+    console.log('✅ AFTER CLEAR - localStorage length:', localStorage.length)
+    console.log('✅ Redirecting to login page...')
+    
+    // Force reload with redirect to login page
+    setTimeout(() => {
+      window.location.replace('/login')
+    }, 100)
+  }
 
   return (
     <header style={{ 
@@ -204,12 +310,26 @@ const Header = ({ onNavigate, currentPage = 'home', cartCount = 0 }: HeaderProps
 
           {/* Right side icons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
-            <UserOutlined 
-              onClick={() => handleNavigation('login')}
-              style={{ fontSize: '1.25rem', color: '#6b7280', cursor: 'pointer', transition: 'color 0.3s ease' }} 
-              onMouseEnter={(e) => e.currentTarget.style.color = 'black'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-            />
+            {isLoggedIn ? (
+              <Dropdown
+                menu={{ items: userMenuItems, onClick: handleUserMenuClick }}
+                trigger={['click']}
+                placement="bottomRight"
+              >
+                <UserOutlined 
+                  style={{ fontSize: '1.25rem', color: '#6b7280', cursor: 'pointer', transition: 'color 0.3s ease' }} 
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'black'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                />
+              </Dropdown>
+            ) : (
+              <UserOutlined 
+                onClick={() => handleNavigation('login')}
+                style={{ fontSize: '1.25rem', color: '#6b7280', cursor: 'pointer', transition: 'color 0.3s ease' }} 
+                onMouseEnter={(e) => e.currentTarget.style.color = 'black'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+              />
+            )}
             <SearchOutlined 
               style={{ fontSize: '1.25rem', color: '#6b7280', cursor: 'pointer', transition: 'color 0.3s ease' }} 
               onMouseEnter={(e) => e.currentTarget.style.color = 'black'}

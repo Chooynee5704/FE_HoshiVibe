@@ -75,122 +75,135 @@ export default function CustomerManagementPage({
   };
 
   return (
-    <div className="px-6 pb-6">
-      <div className="flex items-center justify-end gap-2 mb-4">
-        <Button className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300">
-          <Plus className="w-4 h-4" />
-          Mới
-        </Button>
-        <Button className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300">
-          <Filter className="w-4 h-4" />
-          Lọc
-        </Button>
-      </div>
-
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 w-12">
-                  <Checkbox
-                    checked={allChecked}
-                    indeterminate={!allChecked && selectedIds.length > 0}
-                    onChange={toggleAll}
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Tên</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Email</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">YOB (Ngày sinh)</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Zodiac (Cung)</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">YOB Destination (Nơi sinh)</th>
-                {/* <th className="px-4 py-3 w-12"></th> */}
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td className="px-4 py-6 text-center text-gray-500" colSpan={7}>
-                    Đang tải…
-                  </td>
-                </tr>
-              ) : err ? (
-                <tr>
-                  <td className="px-4 py-6 text-center text-red-600" colSpan={7}>
-                    {err}
-                  </td>
-                </tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-6 text-center text-gray-500" colSpan={7}>
-                    Chưa có dữ liệu
-                  </td>
-                </tr>
-              ) : (
-                rows.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4">
-                      <Checkbox
-                        checked={selectedIds.includes(c.id)}
-                        onChange={() => toggleOne(c.id)}
-                      />
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden">
-                          <img
-                            src={c.avatar || "/placeholder.svg"}
-                            alt={c.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <button
-                          className="text-sm font-medium text-blue-600 hover:underline"
-                          onClick={() => onOpenDetail?.(c.id)}
-                          title="Xem chi tiết khách hàng"
-                        >
-                          {c.name}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-gray-800">{c.email}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-gray-800">{c.yob || "-"}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-gray-800">{c.zodiac || "-"}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-gray-800">{c.yobDestination || "-"}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <button
-                        className="p-1 hover:bg-gray-100 rounded"
-                        onClick={() => onOpenDetail?.(c.id)}
-                        title="Xem chi tiết"
-                      >
-                        <MoreHorizontal className="w-5 h-5 text-gray-600" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+    <div className="flex min-h-screen bg-white">
+      <main className="flex-1 flex flex-col">
+        {/* Page Title */}
+        <div className="px-8 py-8 border-b border-gray-200">
+          <h1 className="text-3xl font-bold text-black">Quản lý khách hàng</h1>
+          <p className="text-sm text-gray-600 mt-1">Quản lý thông tin khách hàng</p>
         </div>
 
-        {/* Phân trang tĩnh – an toàn khi build; bỏ nếu không cần */}
-        <div className="px-6 py-4 border-t border-gray-200">
-          <div className="flex items-center justify-center gap-2">
-            <button className="w-10 h-10 bg-blue-600 text-white rounded-lg font-medium">1</button>
-            <button className="w-10 h-10 hover:bg-gray-100 text-gray-600 rounded-lg font-medium">2</button>
-            <button className="w-10 h-10 hover:bg-gray-100 text-gray-600 rounded-lg font-medium">3</button>
+        {/* Actions */}
+        <div className="px-8 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-end gap-3">
+            <Button className="bg-white hover:bg-gray-50 text-black border border-gray-300 font-medium">
+              <Plus className="w-4 h-4" />
+              Thêm mới
+            </Button>
+            <Button className="bg-white hover:bg-gray-50 text-black border border-gray-300 font-medium">
+              <Filter className="w-4 h-4" />
+              Lọc
+            </Button>
           </div>
         </div>
-      </div>
+
+        <div className="px-8 py-8">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-4 w-12">
+                      <Checkbox
+                        checked={allChecked}
+                        indeterminate={!allChecked && selectedIds.length > 0}
+                        onChange={toggleAll}
+                      />
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Tên</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Email</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Ngày sinh</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Cung hoàng đạo</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">Nơi sinh</th>
+                    <th className="px-6 py-4 w-12"></th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-gray-200">
+                  {loading ? (
+                    <tr>
+                      <td className="px-6 py-12 text-center text-gray-500" colSpan={7}>
+                        Đang tải…
+                      </td>
+                    </tr>
+                  ) : err ? (
+                    <tr>
+                      <td className="px-6 py-12 text-center text-red-600" colSpan={7}>
+                        {err}
+                      </td>
+                    </tr>
+                  ) : rows.length === 0 ? (
+                    <tr>
+                      <td className="px-6 py-12 text-center text-gray-500" colSpan={7}>
+                        Chưa có dữ liệu
+                      </td>
+                    </tr>
+                  ) : (
+                    rows.map((c) => (
+                      <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <Checkbox
+                            checked={selectedIds.includes(c.id)}
+                            onChange={() => toggleOne(c.id)}
+                          />
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gray-200 rounded-full border border-gray-300 overflow-hidden flex-shrink-0">
+                              <img
+                                src={c.avatar || "/placeholder.svg"}
+                                alt={c.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <button
+                              className="text-sm font-semibold text-blue-600 hover:underline"
+                              onClick={() => onOpenDetail?.(c.id)}
+                              title="Xem chi tiết khách hàng"
+                            >
+                              {c.name}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-800">{c.email}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-800">{c.yob || "-"}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-800">{c.zodiac || "-"}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-800">{c.yobDestination || "-"}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            className="p-2 hover:bg-gray-100 rounded border border-gray-300"
+                            onClick={() => onOpenDetail?.(c.id)}
+                            title="Xem chi tiết"
+                          >
+                            <MoreHorizontal className="w-5 h-5 text-black" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-8 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-center gap-2">
+                <button className="w-10 h-10 bg-blue-600 text-white rounded-lg font-medium">1</button>
+                <button className="w-10 h-10 hover:bg-gray-100 text-gray-700 rounded-lg font-medium">2</button>
+                <button className="w-10 h-10 hover:bg-gray-100 text-gray-700 rounded-lg font-medium">3</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

@@ -359,15 +359,17 @@ const Search = ({ onNavigate, searchQuery = '', category = '', onAddToCart }: Se
                     className="add-to-cart-btn"
                     onClick={(e) => { 
                       e.stopPropagation()
+                      // Store reference to button element
+                      const button = e.currentTarget
                       // Add click animation
-                      e.currentTarget.style.transform = 'scale(0.8)'
-                      e.currentTarget.style.backgroundColor = '#333333'
+                      button.style.transform = 'scale(0.8)'
+                      button.style.backgroundColor = '#333333'
                       setTimeout(() => {
-                        e.currentTarget.style.transform = 'scale(1.1)'
-                        e.currentTarget.style.backgroundColor = '#000000'
+                        button.style.transform = 'scale(1.1)'
+                        button.style.backgroundColor = '#000000'
                       }, 100)
                       setTimeout(() => {
-                        e.currentTarget.style.transform = 'scale(1)'
+                        button.style.transform = 'scale(1)'
                       }, 200)
                       // Trigger fly animation
                       triggerFlyAnimation(e)

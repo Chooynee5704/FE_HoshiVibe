@@ -5,16 +5,18 @@ import { Trash2, Minus, Plus, ArrowLeft } from 'lucide-react'
 export type CartItem = {
   id: string
   name: string
+  description?: string
   price: number
   image: string
   quantity: number
+  orderDetailId?: string  // Backend order detail ID for API operations
 }
 
 interface CartProps {
   onNavigate?: (page: PageKey) => void
   items: CartItem[]
-  onUpdateQty: (id: string, qty: number) => void
-  onRemove: (id: string) => void
+  onUpdateQty: (id: string, qty: number) => void | Promise<void>
+  onRemove: (id: string) => void | Promise<void>
   onCheckout?: () => void
 }
 
@@ -43,7 +45,9 @@ const Cart = ({ onNavigate, items, onUpdateQty, onRemove, /*onCheckout*/ }: Cart
         .cart__img{width:82px;height:82px;border-radius:12px;object-fit:cover;background:#f3f4f6}
         .cart__name{font-weight:700}
         .cart__qty{display:flex;align-items:center;gap:8px}
-        .cart__btn{width:32px;height:32px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+        .cart__btn{width:32px;height:32px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;position:relative;z-index:10;display:flex;align-items:center;justify-content:center;transition:all .2s}
+        .cart__btn:hover{background:#f3f4f6;border-color:#d1d5db}
+        .cart__btn:active{background:#e5e7eb}
         .cart__sum{padding:16px}
         .cart__aside{background:#f8f9fa;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);padding:18px}
         .cart__line{display:flex;justify-content:space-between;margin:8px 0;color:#6b7280}
@@ -79,25 +83,63 @@ const Cart = ({ onNavigate, items, onUpdateQty, onRemove, /*onCheckout*/ }: Cart
           {/* Items */}
           <div className="cart__card">
             {items.length === 0 && (
-              <div style={{ padding:24, textAlign:'center', color:'#6b7280' }}>Giỏ hàng trống</div>
+              <div style={{ padding:24, textAlign:'center', color:'#6b7280' }}>
+                Giỏ hàng trống
+              </div>
             )}
             {items.map(item => {
-              const rawId = String(item.id ?? '')
-              const displayId = rawId.length <= 4 ? rawId.padStart(4, '0') : rawId
               return (
-                <div key={rawId} className="cart__row">
+                <div key={item.id} className="cart__row">
                   <img src={item.image} alt={item.name} className="cart__img"/>
                   <div>
                     <div className="cart__name">{item.name}</div>
-                    <div style={{ color:'#6b7280', fontSize:13 }}>MA? SP: HV-{displayId}</div>
+                    <div style={{ color:'#6b7280', fontSize:13 }}>{item.description || 'Không có mô tả'}</div>
                   </div>
                   <div style={{ fontWeight:700 }}>{formatVND(item.price)}</div>
                   <div className="cart__qty">
-                    <button className="cart__btn" onClick={() => onUpdateQty(item.id, Math.max(1, item.quantity - 1))}><Minus size={14}/></button>
-                    <input value={item.quantity} onChange={(e)=> onUpdateQty(item.id, Math.max(1, parseInt(e.target.value)||1))} style={{ width:48, height:32, textAlign:'center', border:'1px solid #e5e7eb', borderRadius:8 }}/>
-                    <button className="cart__btn" onClick={() => onUpdateQty(item.id, item.quantity + 1)}><Plus size={14}/></button>
+                    <button 
+                      type="button" 
+                      className="cart__btn" 
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        console.log('Decrease clicked for:', item.id)
+                        onUpdateQty(item.id, Math.max(1, item.quantity - 1))
+                      }}
+                    >
+                      <Minus size={14}/>
+                    </button>
+                    <input 
+                      value={item.quantity} 
+                      onChange={(e)=> onUpdateQty(item.id, Math.max(1, parseInt(e.target.value)||1))} 
+                      style={{ width:48, height:32, textAlign:'center', border:'1px solid #e5e7eb', borderRadius:8 }}
+                    />
+                    <button 
+                      type="button" 
+                      className="cart__btn" 
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        console.log('Increase clicked for:', item.id)
+                        onUpdateQty(item.id, item.quantity + 1)
+                      }}
+                    >
+                      <Plus size={14}/>
+                    </button>
                   </div>
-                  <button className="cart__btn" onClick={() => onRemove(item.id)} aria-label="XoA?"><Trash2 size={16}/></button>
+                  <button 
+                    type="button" 
+                    className="cart__btn" 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      console.log('Delete clicked for:', item.id)
+                      onRemove(item.id)
+                    }} 
+                    aria-label="Xóa"
+                  >
+                    <Trash2 size={16}/>
+                  </button>
                 </div>
               )
             })}

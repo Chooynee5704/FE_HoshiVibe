@@ -27,6 +27,10 @@ export default function BasicLogin({ onNavigate }: LoginProps) {
     setLoading(true);
     try {
       const res = await loginApi({ identifier, password });
+      
+      // Trigger auth changed event
+      window.dispatchEvent(new Event('authChanged'));
+      
       // TODO: save token/user to localStorage if backend returns them
       if (res?.role === "Admin") onNavigate?.("admin");
       else onNavigate?.("home");

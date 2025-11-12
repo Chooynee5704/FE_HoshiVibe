@@ -25,27 +25,27 @@ export default function CategoriesSidebar({
   className = "",
 }: Props) {
   return (
-    <div className={`w-64 bg-white rounded-lg border border-gray-200 p-4 h-fit ${className}`}>
-      <h2 className="font-semibold text-gray-800 mb-4">{title}</h2>
-      <div className="space-y-2">
+    <div className={`w-64 bg-white rounded-lg border border-gray-200 p-6 h-fit ${className}`}>
+      <h2 className="font-bold text-black text-lg mb-4 pb-3 border-b border-gray-200">{title}</h2>
+      <div className="space-y-1">
         {categories.map((c) => {
           const isExpanded = expandedKeys.includes(c.key)
           return (
             <button
               key={c.key}
               onClick={() => onToggle(c.key)}
-              className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors rounded font-medium"
             >
               <div className="flex items-center gap-2">
                 {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                  <ChevronDown className="w-4 h-4 text-gray-700" />
                 ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                  <ChevronRight className="w-4 h-4 text-gray-700" />
                 )}
-                <span className="text-sm text-gray-700">{c.label}</span>
+                <span className="text-sm text-gray-900 font-medium">{c.label}</span>
               </div>
               {typeof c.count === "number" && (
-                <span className="text-sm text-gray-500">{c.count}</span>
+                <span className="text-sm font-semibold text-gray-700 bg-gray-100 px-2 py-1 rounded">{c.count}</span>
               )}
             </button>
           )

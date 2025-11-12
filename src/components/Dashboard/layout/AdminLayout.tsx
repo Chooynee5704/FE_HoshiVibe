@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Modal } from "antd"
 import Sidebar, { type ItemKey } from "./SideBar"
 import ProductManagementPage from "../products/ProductManagementPage"
 import OrderManagementPage from "../orders/OrderManagementPage"
@@ -33,13 +34,19 @@ export default function AdminLayout() {
   useEffect(() => {
     const u = getCurrentUser()
     if (!u) {
-      alert("Vui lòng đăng nhập.")
-      window.location.replace("/login")
+      Modal.warning({
+        title: 'Yêu cầu đăng nhập',
+        content: 'Vui lòng đăng nhập.',
+        onOk: () => window.location.replace("/login"),
+      })
       return
     }
     if (u.role !== "Admin") {
-      alert("Bạn không có quyền truy cập trang này.")
-      window.location.replace("/")
+      Modal.error({
+        title: 'Không có quyền truy cập',
+        content: 'Bạn không có quyền truy cập trang này.',
+        onOk: () => window.location.replace("/"),
+      })
       return
     }
     setAllowed(true)
@@ -113,9 +120,11 @@ export default function AdminLayout() {
 
   // 4) RENDER CÓ ĐIỀU KIỆN, KHÔNG RETURN SỚM TRƯỚC KHI KHAI BÁO HOOK
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-white">
       {allowed === null ? (
-        <div className="p-6">Đang kiểm tra quyền truy cập…</div>
+        <div className="p-8 text-center">
+          <p className="text-gray-600">Đang kiểm tra quyền truy cập…</p>
+        </div>
       ) : (
         <>
           <Sidebar
@@ -127,7 +136,7 @@ export default function AdminLayout() {
               if (k !== "customers"){ setCustomerView("list"); setSelectedCustomerId(null) }
             }}
           />
-          <main className="flex-1 flex flex-col">{renderPage()}</main>
+          <main className="flex-1 flex flex-col bg-white">{renderPage()}</main>
         </>
       )}
     </div>
