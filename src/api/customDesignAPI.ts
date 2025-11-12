@@ -20,6 +20,7 @@ export interface CreateCustomDesignRequest {
   rawImageBase64?: string;
   aiImageUrl?: string;
   charmIds?: string[];
+  createdDate?: string;
 }
 
 export interface UpdateCustomDesignRequest extends CreateCustomDesignRequest {}

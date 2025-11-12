@@ -1,8 +1,22 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Button, Table, Tag, Modal, Form, Input, InputNumber, message, Space, Divider } from "antd"
+import {
+  Button,
+  Table,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  message,
+  Space,
+  Divider,
+  DatePicker,
+  Popconfirm,
+} from "antd"
 import { Eye, Plus, Edit3, Trash2, RefreshCw } from "lucide-react"
+import dayjs, { type Dayjs } from "dayjs"
 import customDesignAPI, { type CustomDesign } from "../../../api/customDesignAPI"
 
 type FormMode = "create" | "edit"
@@ -15,6 +29,7 @@ type FormValues = {
   rawImageBase64?: string
   aiImageUrl?: string
   charmIdsText?: string
+  createdDate?: Dayjs
 }
 
 const emptyForm: FormValues = {
@@ -25,6 +40,21 @@ const emptyForm: FormValues = {
   rawImageBase64: "",
   aiImageUrl: "",
   charmIdsText: "",
+  createdDate: dayjs(),
+}
+
+const resolveImageSource = (value?: string | null): string => {
+  if (!value) return "/placeholder.svg"
+  const trimmed = value.trim().replace(/^"+|"+$/g, "")
+  if (!trimmed) return "/placeholder.svg"
+  if (/^(data:image|https?:|blob:)/i.test(trimmed)) {
+    return trimmed
+  }
+  const base64Pattern = /^[A-Za-z0-9+/=]+$/
+  if (base64Pattern.test(trimmed) && trimmed.length > 60) {
+    return `data:image/jpeg;base64,${trimmed}`
+  }
+  return trimmed
 }
 
 export default function CustomProductsPage() {
@@ -37,6 +67,7 @@ export default function CustomProductsPage() {
   const [formMode, setFormMode] = useState<FormMode>("create")
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [editingDesign, setEditingDesign] = useState<CustomDesign | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [form] = Form.useForm<FormValues>()
 
   useEffect(() => {
@@ -70,7 +101,10 @@ export default function CustomProductsPage() {
   const openCreateModal = () => {
     setFormMode("create")
     setEditingDesign(null)
-    form.setFieldsValue(emptyForm)
+    form.setFieldsValue({
+      ...emptyForm,
+      createdDate: dayjs(),
+    })
     setIsFormModalOpen(true)
   }
 
@@ -85,6 +119,7 @@ export default function CustomProductsPage() {
       rawImageBase64: design.rawImageBase64 || "",
       aiImageUrl: design.aiImageUrl || "",
       charmIdsText: design.charmIds?.join(", ") || "",
+      createdDate: dayjs(design.createdDate),
     })
     setIsFormModalOpen(true)
   }
@@ -92,7 +127,10 @@ export default function CustomProductsPage() {
   const closeFormModal = () => {
     setIsFormModalOpen(false)
     setEditingDesign(null)
-    form.resetFields()
+    form.setFieldsValue({
+      ...emptyForm,
+      createdDate: dayjs(),
+    })
   }
 
   const handleSubmit = async () => {
@@ -106,6 +144,11 @@ export default function CustomProductsPage() {
           .map((id) => id.trim())
           .filter((id) => id.length > 0) || []
 
+      const createdDateISO =
+        values.createdDate && typeof values.createdDate !== "string"
+          ? values.createdDate.toISOString()
+          : values.createdDate
+
       const payload = {
         user_Id: values.user_Id?.trim() || undefined,
         name: values.name.trim(),
@@ -114,6 +157,7 @@ export default function CustomProductsPage() {
         rawImageBase64: values.rawImageBase64?.trim() || undefined,
         aiImageUrl: values.aiImageUrl?.trim() || undefined,
         charmIds: charmIds.length > 0 ? charmIds : undefined,
+        createdDate: createdDateISO,
       }
 
       if (formMode === "create") {
@@ -139,23 +183,18 @@ export default function CustomProductsPage() {
   }
 
   const handleDelete = async (design: CustomDesign) => {
-    Modal.confirm({
-      title: `Xóa custom product "${design.name}"?`,
-      content: "Hành động này không thể hoàn tác.",
-      okType: "danger",
-      okText: "Xóa",
-      cancelText: "Hủy",
-      onOk: async () => {
-        try {
-          await customDesignAPI.deleteCustomDesign(design.customDesign_Id)
-          message.success("Đã xóa custom product")
-          loadDesigns()
-        } catch (err: any) {
-          console.error("Delete custom design error", err)
-          message.error(err?.response?.data?.message || "Không thể xóa custom product")
-        }
-      },
-    })
+    try {
+      setDeletingId(design.customDesign_Id)
+      await customDesignAPI.deleteCustomDesign(design.customDesign_Id)
+      message.success("Đã xóa custom product")
+      await loadDesigns()
+    } catch (err: any) {
+      console.error("Delete custom design error", err)
+      message.error(err?.response?.data?.message || "Không thể xóa custom product")
+      throw err
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const columns = [
@@ -167,7 +206,7 @@ export default function CustomProductsPage() {
       render: (_: string, record: CustomDesign) => (
         <div className="w-20 h-20 rounded border overflow-hidden bg-gray-100">
           <img
-            src={record.aiImageUrl || record.rawImageBase64 || "/placeholder.svg"}
+            src={resolveImageSource(record.aiImageUrl || record.rawImageBase64)}
             alt={record.name}
             className="w-full h-full object-cover"
             onError={(e) => {
@@ -238,9 +277,18 @@ export default function CustomProductsPage() {
           <Button icon={<Edit3 className="w-4 h-4" />} onClick={() => openEditModal(record)}>
             Sửa
           </Button>
-          <Button danger icon={<Trash2 className="w-4 h-4" />} onClick={() => handleDelete(record)}>
-            Xóa
-          </Button>
+          <Popconfirm
+            title="Xóa custom product"
+            description={`Bạn có chắc muốn xoá "${record.name}"?`}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => handleDelete(record)}
+          >
+            <Button danger icon={<Trash2 className="w-4 h-4" />} loading={deletingId === record.customDesign_Id}>
+              Xóa
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -294,42 +342,41 @@ export default function CustomProductsPage() {
         width={720}
       >
         {detailDesign && (
-          <div className="space-y-4">
-            <div className="flex gap-4">
+          <div className="space-y-6">
+            <div>
               <img
-                src={detailDesign.aiImageUrl || detailDesign.rawImageBase64 || "/placeholder.svg"}
+                src={resolveImageSource(detailDesign.aiImageUrl || detailDesign.rawImageBase64)}
                 alt={detailDesign.name}
-                className="w-48 h-48 object-cover rounded border"
+                className="w-full max-h-[420px] object-contain rounded-lg border bg-gray-50"
               />
-              <div className="flex-1">
-                <h3 className="text-xl font-bold">{detailDesign.name}</h3>
-                <p className="text-gray-600 whitespace-pre-wrap">{detailDesign.description || "Không có mô tả"}</p>
-                <Divider />
-                <p>
-                  <strong>User ID:</strong> {detailDesign.user_Id || "Mặc định"}
-                </p>
-                <p>
-                  <strong>Giá:</strong>{" "}
-                  {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(detailDesign.price)}
-                </p>
-                <p>
-                  <strong>Số charm:</strong> {detailDesign.charmIds?.length || 0}
-                </p>
-                <p>
-                  <strong>Ngày tạo:</strong> {new Date(detailDesign.createdDate).toLocaleString("vi-VN")}
-                </p>
-              </div>
             </div>
             {detailDesign.rawImageBase64 && (
               <div>
-                <h4 className="text-sm font-semibold mb-2">Ảnh raw</h4>
                 <img
-                  src={detailDesign.rawImageBase64}
+                  src={resolveImageSource(detailDesign.rawImageBase64)}
                   alt="Raw design"
-                  className="w-full max-h-80 object-contain rounded border"
+                  className="w-full max-h-[420px] object-contain rounded-lg border bg-gray-50"
                 />
               </div>
             )}
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-gray-900">{detailDesign.name}</h3>
+              <p className="text-gray-600 whitespace-pre-wrap">{detailDesign.description || "Không có mô tả"}</p>
+              <Divider />
+              <p>
+                <strong>User ID:</strong> {detailDesign.user_Id || "Mặc định"}
+              </p>
+              <p>
+                <strong>Giá:</strong>{" "}
+                {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(detailDesign.price)}
+              </p>
+              <p>
+                <strong>Số charm:</strong> {detailDesign.charmIds?.length || 0}
+              </p>
+              <p>
+                <strong>Ngày tạo:</strong> {new Date(detailDesign.createdDate).toLocaleString("vi-VN")}
+              </p>
+            </div>
           </div>
         )}
       </Modal>
@@ -358,6 +405,13 @@ export default function CustomProductsPage() {
           <Form.Item label="Mô tả" name="description">
             <Input.TextArea rows={3} placeholder="Nhập mô tả" />
           </Form.Item>
+          <Form.Item
+            label="Ngày tạo"
+            name="createdDate"
+            rules={[{ required: true, message: "Vui lòng chọn ngày tạo" }]}
+          >
+            <DatePicker showTime className="w-full" format="DD/MM/YYYY HH:mm" />
+          </Form.Item>
           <Form.Item label="Giá" name="price">
             <InputNumber
               className="w-full"
@@ -379,4 +433,3 @@ export default function CustomProductsPage() {
     </div>
   )
 }
-
