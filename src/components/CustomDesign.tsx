@@ -99,7 +99,7 @@ const CustomDesign = () => {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<'accessories' | 'jewelry'>('accessories')
   const [selectedPlacedId, setSelectedPlacedId] = useState<number | null>(null)
-  const [isResizing, setIsResizing] = useState(false)
+  const [_isResizing, setIsResizing] = useState(false)
   const [isDraggingPlaced, setIsDraggingPlaced] = useState(false)
   const canvasRef = useRef<HTMLDivElement | null>(null)
 
@@ -787,7 +787,6 @@ const CustomDesign = () => {
                             const startX = e.clientX
                             const startY = e.clientY
                             const startWidth = accessory.width
-                            const startHeight = accessory.height
                             
                             const handleMouseMove = (moveEvent: MouseEvent) => {
                               const deltaX = moveEvent.clientX - startX

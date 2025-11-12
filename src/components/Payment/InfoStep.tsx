@@ -59,7 +59,6 @@ function PaymentOptionsTailwind({
 export default function InfoStep({
   items,
   defaultPay = "vnpay",
-  overrideTotal,
   onNext,
   onBackToCart,
 }: {

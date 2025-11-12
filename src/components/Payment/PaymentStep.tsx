@@ -12,7 +12,6 @@ export type PaymentMethod = "vnpay"
 
 export default function PaymentStep({
   amount,
-  pay,
   receiver,
   orderId,
   voucherCode,
