@@ -90,6 +90,7 @@ export default function AdminLayout() {
       return (
         <OrderDetailPage
           orderId={selectedOrderId}
+          mode="edit"
           onBack={() => { setOrderView("list"); setSelectedOrderId(null) }}
         />
       )

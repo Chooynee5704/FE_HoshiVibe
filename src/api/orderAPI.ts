@@ -8,6 +8,8 @@ export type OrderDetail = {
   orderId: string;
   productId?: string;
   cProduct_Id?: string;
+  customDesignId?: string;
+  customDesign_Id?: string;
   quantity: number;
   unitPrice: number;
   discount: number;
@@ -17,6 +19,13 @@ export type OrderDetail = {
     description?: string;
     imageUrl?: string;
     imageURL?: string;
+    price: number;
+  };
+  customDesign?: {
+    customDesign_Id: string;
+    name: string;
+    description?: string;
+    aiImageUrl?: string;
     price: number;
   };
 };
@@ -52,6 +61,7 @@ export type CreateOrderDetailRequest = {
   orderId?: string; // Optional - backend will use user's pending order or create new one
   productId?: string;
   cProduct_Id?: string;
+  customDesign_Id?: string;
   quantity: number;
   unitPrice: number;
   discount: number;

@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { CheckCircle2, Clock, Loader2, Truck, Package } from "lucide-react"
-import { message, Spin, Steps, Button as AntButton } from "antd"
+import { message, Spin, Steps, Button as AntButton, Input, DatePicker } from "antd"
+import dayjs from "dayjs"
 import { api } from "../../../api/axios"
-import { getOrderDetails, type OrderDetail, updateShippingStatus } from "../../../api/orderAPI"
+import { getOrderDetails, type OrderDetail, updateShippingStatus, updateOrder } from "../../../api/orderAPI"
+import { getUserProfile, type UserProfile } from "../../../api/userAPI"
 
 type OrderData = {
   order_Id: string
   user_Id: string
+  voucher_Id?: string
   totalPrice: number
   finalPrice: number
   discountAmount: number
@@ -22,17 +25,40 @@ type OrderData = {
 type Props = {
   orderId: string
   onBack?: () => void
+  mode?: 'view' | 'edit'
 }
 
-export default function OrderDetailPage({ orderId, onBack }: Props) {
+export default function OrderDetailPage({ orderId, onBack, mode = 'view' }: Props) {
   const [order, setOrder] = useState<OrderData | null>(null)
   const [orderDetails, setOrderDetails] = useState<OrderDetail[]>([])
   const [loading, setLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
+  const [ownerProfile, setOwnerProfile] = useState<UserProfile | null>(null)
+  const [formValues, setFormValues] = useState({
+    shippingAddress: '',
+    phoneNumber: '',
+    orderDate: '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [editMode, setEditMode] = useState(mode === 'edit')
+  const isEditMode = editMode
 
   useEffect(() => {
     loadOrderData()
   }, [orderId])
+
+  useEffect(() => {
+    setEditMode(mode === 'edit')
+  }, [mode])
+
+  const fetchOwner = async (userId: string) => {
+    try {
+      const profile = await getUserProfile(userId)
+      setOwnerProfile(profile)
+    } catch (err) {
+      console.error("Load user profile error:", err)
+    }
+  }
 
   const loadOrderData = async () => {
     setLoading(true)
@@ -43,7 +69,17 @@ export default function OrderDetailPage({ orderId, onBack }: Props) {
       const orderRes = await api.get(`/Order/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      setOrder(orderRes.data)
+      const orderData: OrderData = orderRes.data
+      setOrder(orderData)
+      setFormValues({
+        shippingAddress: orderData.shippingAddress || '',
+        phoneNumber: orderData.phoneNumber ? String(orderData.phoneNumber) : '',
+        orderDate: orderData.orderDate,
+      })
+      setOwnerProfile(null)
+      if (orderData.user_Id) {
+        fetchOwner(orderData.user_Id)
+      }
 
       // Load order details
       const details = await getOrderDetails(orderId)
@@ -71,6 +107,69 @@ export default function OrderDetailPage({ orderId, onBack }: Props) {
     } finally {
       setUpdating(false)
     }
+  }
+
+  const handleFieldChange = (field: 'shippingAddress' | 'phoneNumber' | 'orderDate', value: string) => {
+    setFormValues(prev => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleSaveEdits = async () => {
+    if (!order) return
+
+    if (!formValues.shippingAddress.trim()) {
+      message.error("Vui lòng nhập địa chỉ giao hàng")
+      return
+    }
+
+    if (!formValues.orderDate) {
+      message.error("Vui lòng chọn ngày đặt hàng")
+      return
+    }
+
+    const phoneValue = formValues.phoneNumber.replace(/\D/g, "")
+    if (!phoneValue) {
+      message.error("Vui lòng nhập số điện thoại hợp lệ")
+      return
+    }
+
+    setSaving(true)
+    try {
+      await updateOrder(order.order_Id, {
+        user_Id: order.user_Id,
+        voucher_Id: order.voucher_Id,
+        totalPrice: order.totalPrice,
+        discountAmount: order.discountAmount,
+        finalPrice: order.finalPrice,
+        shippingAddress: formValues.shippingAddress.trim(),
+        phoneNumber: Number(phoneValue),
+        orderDate: formValues.orderDate,
+        status: order.status,
+      })
+      message.success("Đã cập nhật đơn hàng")
+      await loadOrderData()
+      setEditMode(false)
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || "Không thể cập nhật đơn hàng")
+      console.error("Update order error:", err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    if (!order) {
+      setEditMode(false)
+      return
+    }
+    setFormValues({
+      shippingAddress: order.shippingAddress || '',
+      phoneNumber: order.phoneNumber ? String(order.phoneNumber) : '',
+      orderDate: order.orderDate,
+    })
+    setEditMode(false)
   }
 
   const getShippingStep = (status?: string) => {
@@ -154,13 +253,40 @@ export default function OrderDetailPage({ orderId, onBack }: Props) {
 
         {/* Header */}
         <div className="bg-white border border-gray-200 rounded-lg p-8 mb-6">
-          <h1 className="text-3xl font-bold text-black mb-2">
-            Chi tiết đơn hàng: #{order.order_Id.substring(0, 8).toUpperCase()}
-          </h1>
-          <p className="text-sm text-gray-600 mb-4">{formatDate(order.orderDate)}</p>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-gray-700">Trạng thái thanh toán:</span>
-            {getStatusBadge(order.status)}
+          <div className="flex flex-col gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-black mb-2">
+                Chi tiết đơn hàng: #{order.order_Id.substring(0, 8).toUpperCase()}
+              </h1>
+              <p className="text-sm text-gray-600">{formatDate(order.orderDate)}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-semibold text-gray-700">Trạng thái thanh toán:</span>
+              {getStatusBadge(order.status)}
+            </div>
+            {ownerProfile && (
+              <div className="text-sm text-gray-700 flex flex-wrap items-center gap-2">
+                <span className="font-semibold">Khách hàng:</span>
+                <span className="text-black font-semibold">
+                  {ownerProfile.profile?.fullName || ownerProfile.account}
+                </span>
+                <span className="text-gray-500">({ownerProfile.email})</span>
+              </div>
+            )}
+            <div className="flex justify-end gap-3 mt-2">
+              {isEditMode ? (
+                <>
+                  <AntButton onClick={handleCancelEdit}>Hủy</AntButton>
+                  <AntButton type="primary" loading={saving} onClick={handleSaveEdits}>
+                    Lưu thay đổi
+                  </AntButton>
+                </>
+              ) : (
+                <AntButton type="primary" onClick={() => setEditMode(true)}>
+                  Chỉnh sửa
+                </AntButton>
+              )}
+            </div>
           </div>
         </div>
 
@@ -246,26 +372,74 @@ export default function OrderDetailPage({ orderId, onBack }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Shipping Address */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-lg font-bold text-black mb-4 pb-3 border-b border-gray-200">Địa chỉ giao hàng</h2>
-            <div className="space-y-2 text-sm text-gray-700">
-              <p className="font-medium">{order.shippingAddress || "Chưa có địa chỉ"}</p>
-              {order.phoneNumber && (
-                <p>
-                  <span className="text-gray-600">Điện thoại: </span>
-                  <a href={`tel:${order.phoneNumber}`} className="text-blue-600 font-medium hover:underline">
-                    {order.phoneNumber}
-                  </a>
-                </p>
-              )}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-black">Địa chỉ giao hàng</h2>
+              {isEditMode && <span className="text-xs text-blue-600 font-semibold"></span>}
             </div>
+            {ownerProfile && (
+              <div className="mb-4 p-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700">
+                <p className="text-xs uppercase text-gray-500 mb-1">Chủ đơn hàng</p>
+                <p className="font-semibold text-gray-900">
+                  {ownerProfile.profile?.fullName || ownerProfile.account}
+                </p>
+                <p className="text-gray-500">{ownerProfile.email}</p>
+              </div>
+            )}
+            {isEditMode ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-2">Dia chi giao hang</label>
+                  <Input.TextArea
+                    rows={3}
+                    value={formValues.shippingAddress}
+                    onChange={(e) => handleFieldChange('shippingAddress', e.target.value)}
+                    placeholder="Nhap dia chi giao hang"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-2">So dien thoai</label>
+                  <Input
+                    value={formValues.phoneNumber}
+                    onChange={(e) => handleFieldChange('phoneNumber', e.target.value)}
+                    placeholder="Nhap so dien thoai"
+                    maxLength={15}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2 text-sm text-gray-700">
+                <p className="font-medium">{order.shippingAddress || "Chua co dia chi"}</p>
+                {order.phoneNumber && (
+                  <p>
+                    <span className="text-gray-600">Dien thoai: </span>
+                    <a href={`tel:${order.phoneNumber}`} className="text-blue-600 font-medium hover:underline">
+                      {order.phoneNumber}
+                    </a>
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Order Summary Info */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h2 className="text-lg font-bold text-black mb-4 pb-3 border-b border-gray-200">Thông tin đơn hàng</h2>
             <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-gray-600">Ngày đặt</span>
+                {isEditMode ? (
+                  <DatePicker
+                    showTime
+                    format="DD/MM/YYYY HH:mm"
+                    value={formValues.orderDate ? dayjs(formValues.orderDate) : undefined}
+                    onChange={(value) => handleFieldChange('orderDate', value ? value.toISOString() : '')}
+                  />
+                ) : (
+                  <span className="font-semibold text-black">{formatDate(order.orderDate)}</span>
+                )}
+              </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Trạng thái vận chuyển:</span>
+                <span className="text-gray-600">Trạng thái vận chuyển</span>
                 <span className="font-semibold text-black">{order.shippingStatus || "Chưa cập nhật"}</span>
               </div>
               <div className="flex justify-between">

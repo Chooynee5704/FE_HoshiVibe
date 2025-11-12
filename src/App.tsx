@@ -68,12 +68,16 @@ function App() {
           console.log('Order details:', order.orderDetails)
           const items: UICartItem[] = order.orderDetails.map((detail: OrderDetail) => {
             console.log('Mapping detail:', detail)
+            
+            // Check if this is a custom design
+            const customDesignId = detail.customDesignId || detail.customDesign_Id
+            
             return {
-              id: detail.productId || detail.cProduct_Id || '',
-              name: detail.product?.name || 'Sản phẩm',
-              description: detail.product?.description,
+              id: customDesignId || detail.productId || detail.cProduct_Id || '',
+              name: detail.customDesign?.name || detail.product?.name || 'Sản phẩm',
+              description: detail.customDesign?.description || detail.product?.description,
               price: detail.unitPrice,
-              image: detail.product?.imageUrl || detail.product?.imageURL || '/placeholder.jpg',
+              image: detail.customDesign?.aiImageUrl || detail.product?.imageUrl || detail.product?.imageURL || '/placeholder.jpg',
               quantity: detail.quantity,
               orderDetailId: detail.orderDetailId || detail.orderDetail_Id, // Backend uses camelCase
             }

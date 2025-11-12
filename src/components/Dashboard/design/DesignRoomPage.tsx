@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Plus, Edit, Trash2, Loader2, Search } from "lucide-react"
-import { Button, message, Modal, Input, Select } from "antd"
+import { Button, message, Modal, Input, Select, Popconfirm } from "antd"
 import { getAllCharms, createCharm, updateCharm, deleteCharm, type Charm, type CharmType } from "../../../api/charmAPI"
 
 export default function DesignRoomPage() {
@@ -16,6 +16,7 @@ export default function DesignRoomPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
   const [editingCharm, setEditingCharm] = useState<Charm | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -120,24 +121,34 @@ export default function DesignRoomPage() {
     }
   }
 
-  const handleDelete = (charm: Charm) => {
-    Modal.confirm({
-      title: 'Xác nhận xóa',
-      content: `Bạn có chắc chắn muốn xóa charm "${charm.name}"?`,
-      okText: 'Xóa',
-      cancelText: 'Hủy',
-      okType: 'danger',
-      onOk: async () => {
-        try {
-          await deleteCharm(charm.cProduct_Id)
-          message.success('Xóa charm thành công!')
-          loadCharms()
-        } catch (err: any) {
-          message.error(err?.response?.data?.message || 'Không thể xóa charm')
-          console.error('Delete charm error:', err)
-        }
-      },
-    })
+  const handleDelete = async (charm: Charm) => {
+    if (!charm?.cProduct_Id) {
+      message.error('ID charm khong hop le, khong the xoa')
+      console.error('Attempted to delete charm without cProduct_Id', charm)
+      return
+    }
+
+    setDeletingId(charm.cProduct_Id)
+    console.log('Deleting charm with id:', charm.cProduct_Id)
+    try {
+      await deleteCharm(charm.cProduct_Id)
+      console.log('Delete API responded (success).')
+      message.success('Xoa charm thanh cong!')
+      await loadCharms()
+    } catch (err: any) {
+      const status = err?.response?.status
+      const data = err?.response?.data
+      console.error('Delete charm failed. status:', status, 'data:', data, 'error:', err)
+      if (status === 401 || status === 403) {
+        message.error('Ban can dang nhap voi tai khoan quan tri de xoa charm.')
+      } else if (status === 404) {
+        message.error('Charm khong ton tai (404). Co the da bi xoa truoc do.')
+      } else {
+        message.error(data?.message || 'Khong the xoa charm')
+      }
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   // Filter charms
@@ -205,7 +216,9 @@ export default function DesignRoomPage() {
                   Chưa có charm nào
                 </div>
               ) : (
-                filteredCharms.map((charm) => (
+                filteredCharms.map((charm) => {
+                  console.log('Charm in grid:', JSON.stringify(charm))
+                  return (
                   <div
                     key={charm.cProduct_Id}
                     className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all"
@@ -240,23 +253,49 @@ export default function DesignRoomPage() {
                       {/* Actions */}
                       <div className="flex gap-2">
                         <button
+                          type="button"
                           onClick={() => handleOpenEditModal(charm)}
                           className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors flex items-center justify-center gap-1 text-sm font-medium"
                         >
                           <Edit className="w-4 h-4" />
                           Sửa
                         </button>
-                        <button
-                          onClick={() => handleDelete(charm)}
-                          className="flex-1 px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center justify-center gap-1 text-sm font-medium"
+                        <Popconfirm
+                          title="Xac nhan xoa"
+                          description={`Ban co chac chan muon xoa charm "${charm.name}"?`}
+                          okText="Xoa"
+                          cancelText="Huy"
+                          okButtonProps={{
+                            danger: true,
+                            loading: deletingId === charm.cProduct_Id,
+                          }}
+                          onConfirm={() => handleDelete(charm)}
                         >
-                          <Trash2 className="w-4 h-4" />
-                          Xóa
-                        </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            disabled={deletingId === charm.cProduct_Id}
+                            className="flex-1 px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center justify-center gap-1 text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {deletingId === charm.cProduct_Id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4" />
+                                Xóa
+                              </>
+                            )}
+                          </button>
+                        </Popconfirm>
+
                       </div>
                     </div>
                   </div>
-                ))
+                  )
+                })
               )}
             </div>
           )}

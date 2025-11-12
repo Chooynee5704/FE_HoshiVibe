@@ -12,7 +12,8 @@ import {
   Edit,
   Trash2,
 } from "lucide-react"
-import { Button, Checkbox, message, Modal, Dropdown, Menu } from "antd"
+import { Button, Checkbox, message, Modal, Dropdown } from "antd"
+import type { MenuProps } from "antd"
 import { api } from "../../../api/axios"
 import { deleteOrder } from "../../../api/orderAPI"
 
@@ -39,6 +40,7 @@ export default function OrderManagementPage({
   const [orders, setOrders] = useState<OrderItem[]>([])
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleteModalOrder, setDeleteModalOrder] = useState<OrderItem | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
 
@@ -124,26 +126,29 @@ export default function OrderManagementPage({
   }
 
   const handleDeleteOrder = (orderId: string) => {
-    Modal.confirm({
-      title: 'Xác nhận xóa đơn hàng',
-      content: `Bạn có chắc chắn muốn xóa đơn hàng #${orderId.substring(0, 8).toUpperCase()}?`,
-      okText: 'Xóa',
-      cancelText: 'Hủy',
-      okType: 'danger',
-      onOk: async () => {
-        setDeleting(orderId)
-        try {
-          await deleteOrder(orderId)
-          message.success('Đã xóa đơn hàng thành công!')
-          loadOrders() // Reload the orders list
-        } catch (err: any) {
-          message.error(err?.response?.data?.message || 'Không thể xóa đơn hàng')
-          console.error('Delete order error:', err)
-        } finally {
-          setDeleting(null)
-        }
-      },
-    })
+    const target = orders.find(o => o.order_Id === orderId)
+    if (!target) {
+      message.error('Không tìm thấy đơn hàng cần xóa')
+      return
+    }
+    setDeleteModalOrder(target)
+  }
+
+  const confirmDeleteOrder = async () => {
+    if (!deleteModalOrder) return
+    const orderId = deleteModalOrder.order_Id
+    setDeleting(orderId)
+    try {
+      await deleteOrder(orderId)
+      message.success('Đã xóa đơn hàng thành công!')
+      await loadOrders()
+      setDeleteModalOrder(null)
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || 'Không thể xóa đơn hàng')
+      console.error('Delete order error:', err)
+    } finally {
+      setDeleting(null)
+    }
   }
 
   const handleEditOrder = (orderId: string) => {
@@ -154,41 +159,41 @@ export default function OrderManagementPage({
     }
   }
 
-  const getActionsMenu = (orderId: string) => (
-    <Menu
-      onClick={({ key }) => {
-        if (key === 'view') {
-          onOpenDetail?.(orderId)
-        } else if (key === 'edit') {
-          handleEditOrder(orderId)
-        } else if (key === 'delete') {
-          handleDeleteOrder(orderId)
-        }
-      }}
-    >
-      <Menu.Item 
-        key="view" 
-        icon={<MoreHorizontal className="w-4 h-4" />}
-      >
-        Xem chi tiết
-      </Menu.Item>
-      <Menu.Item 
-        key="edit" 
-        icon={<Edit className="w-4 h-4" />}
-      >
-        Chỉnh sửa
-      </Menu.Item>
-      <Menu.Divider />
-      <Menu.Item 
-        key="delete" 
-        icon={<Trash2 className="w-4 h-4" />}
-        danger
-        disabled={deleting === orderId}
-      >
-        {deleting === orderId ? 'Đang xóa...' : 'Xóa'}
-      </Menu.Item>
-    </Menu>
-  )
+  const getActionsMenu = (orderId: string): MenuProps => ({
+    items: [
+      {
+        key: 'view',
+        label: 'Xem chi tiết',
+        icon: <ChevronRight className="w-4 h-4" />,
+      },
+      {
+        key: 'edit',
+        label: 'Chỉnh sửa',
+        icon: <Edit className="w-4 h-4" />,
+      },
+      {
+        type: 'divider',
+      },
+      {
+        key: 'delete',
+        label: deleting === orderId ? '??ang xA3a...' : 'Xóa',
+        icon: <Trash2 className="w-4 h-4" />,
+        danger: true,
+        disabled: deleting === orderId,
+      },
+    ],
+    onClick: ({ key }) => {
+      if (key === 'view') {
+        onOpenDetail?.(orderId)
+      } else if (key === 'edit') {
+        handleEditOrder(orderId)
+      } else if (key === 'delete') {
+        handleDeleteOrder(orderId)
+      }
+    },
+  })
+
+
 
   // Pagination logic
   const totalPages = Math.ceil(orders.length / itemsPerPage)
@@ -332,7 +337,7 @@ export default function OrderManagementPage({
                             <span className="text-sm font-bold text-black">{formatCurrency(order.finalPrice)}</span>
                           </td>
                           <td className="px-6 py-4">
-                            <Dropdown overlay={getActionsMenu(order.order_Id)} trigger={['click']}>
+                            <Dropdown menu={getActionsMenu(order.order_Id)} trigger={['click']}>
                               <button
                                 className="p-2 hover:bg-gray-100 rounded border border-gray-300"
                                 title="Hành động"
@@ -392,6 +397,25 @@ export default function OrderManagementPage({
           )}
         </div>
       </main>
+      <Modal
+        title="Xác nhận xóa đơn hàng"
+        open={!!deleteModalOrder}
+        okText="Xóa"
+        cancelText="Hủy"
+        okButtonProps={{
+          danger: true,
+          loading: deleting === deleteModalOrder?.order_Id,
+        }}
+        onOk={confirmDeleteOrder}
+        onCancel={() => setDeleteModalOrder(null)}
+      >
+        {deleteModalOrder && (
+          <p>
+            Bạn có chắc chắn muốn xóa đơn hàng #
+            {deleteModalOrder.order_Id.substring(0, 8).toUpperCase()}?
+          </p>
+        )}
+      </Modal>
     </div>
   )
 }

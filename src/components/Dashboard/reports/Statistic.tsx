@@ -2,25 +2,28 @@
 
 import { useState, useEffect } from "react"
 import { Package, Users, ShoppingCart, Loader2, DollarSign } from "lucide-react"
-import { getDashboardStats, getMonthlyOrderStats, getTopSellingProducts, getDailyRevenueStats, type MonthlyOrderStat, type TopSellingProduct, type DailyRevenueStat } from "../../../api/dashboardAPI"
+import { getDashboardStats, getTopSellingProducts, getDailyRevenueStats, type TopSellingProduct, type DailyRevenueStat } from "../../../api/dashboardAPI"
+
+type DailyPoint = {
+  date: string
+  label: string
+  totalOrders: number
+  totalRevenue: number
+}
 
 export default function StatisticsPage() {
   const [loading, setLoading] = useState(true)
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
-  
   const [totalProducts, setTotalProducts] = useState(0)
   const [totalOrders, setTotalOrders] = useState(0)
   const [totalUsers, setTotalUsers] = useState(0)
   const [totalRevenue, setTotalRevenue] = useState(0)
   
-  const [monthlyData, setMonthlyData] = useState<MonthlyOrderStat[]>([])
-  const [dailyData, setDailyData] = useState<DailyRevenueStat[]>([])
+  const [dailyData, setDailyData] = useState<DailyPoint[]>([])
   const [topProducts, setTopProducts] = useState<TopSellingProduct[]>([])
 
   useEffect(() => {
     loadDashboardData()
-  }, [selectedYear, selectedMonth])
+  }, [])
 
   const loadDashboardData = async () => {
     setLoading(true)
@@ -31,11 +34,8 @@ export default function StatisticsPage() {
       setTotalUsers(stats.totalUsers || 0)
       setTotalRevenue(stats.totalRevenue || 0)
 
-      const monthlyStats = await getMonthlyOrderStats(selectedYear)
-      setMonthlyData(monthlyStats || [])
-
-      const dailyStats = await getDailyRevenueStats(selectedMonth, selectedYear)
-      setDailyData(dailyStats || [])
+      const dailySeries = await buildLast30DaysRevenue()
+      setDailyData(dailySeries)
 
       const topSelling = await getTopSellingProducts(10)
       setTopProducts(topSelling || [])
@@ -46,9 +46,73 @@ export default function StatisticsPage() {
     }
   }
 
-  const maxMonthlyValue = monthlyData.length > 0 
-    ? Math.max(...monthlyData.map((d) => d.totalRevenue || 0)) 
-    : 100
+  const buildLast30DaysRevenue = async (): Promise<DailyPoint[]> => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const startDate = new Date(today)
+    startDate.setDate(startDate.getDate() - 29)
+
+    const formatKey = (date: Date) => {
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      return `${y}-${m}-${d}`
+    }
+
+    const monthSet = new Set<string>()
+    const iterator = new Date(startDate)
+    while (iterator <= today) {
+      monthSet.add(`${iterator.getFullYear()}-${iterator.getMonth() + 1}`)
+      iterator.setDate(iterator.getDate() + 1)
+    }
+
+    const monthPairs = Array.from(monthSet).map(key => {
+      const [yearStr, monthStr] = key.split('-')
+      return { year: Number(yearStr), month: Number(monthStr) }
+    })
+
+    const responses = await Promise.all(
+      monthPairs.map(({ month, year }) =>
+        getDailyRevenueStats(month, year).then(data => ({
+          month,
+          year,
+          data: data || [],
+        }))
+      )
+    )
+
+    const statsMap = new Map<string, { totalRevenue: number; totalOrders: number }>()
+
+    responses.forEach(({ month, year, data }) => {
+      data.forEach((stat: DailyRevenueStat) => {
+        const statDate = new Date(year, month - 1, stat.day)
+        statDate.setHours(0, 0, 0, 0)
+        if (statDate < startDate || statDate > today) return
+        const key = formatKey(statDate)
+        const existing = statsMap.get(key) || { totalRevenue: 0, totalOrders: 0 }
+        statsMap.set(key, {
+          totalRevenue: existing.totalRevenue + (stat.totalRevenue || 0),
+          totalOrders: existing.totalOrders + (stat.totalOrders || 0),
+        })
+      })
+    })
+
+    const points: DailyPoint[] = []
+    const dayCursor = new Date(startDate)
+    while (dayCursor <= today) {
+      const key = formatKey(dayCursor)
+      const stat = statsMap.get(key)
+      points.push({
+        date: key,
+        label: dayCursor.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+        totalOrders: stat?.totalOrders || 0,
+        totalRevenue: stat?.totalRevenue || 0,
+      })
+      dayCursor.setDate(dayCursor.getDate() + 1)
+    }
+
+    return points
+  }
 
   const maxDailyValue = dailyData.length > 0 
     ? Math.max(...dailyData.map((d) => d.totalRevenue || 0)) 
@@ -141,93 +205,7 @@ export default function StatisticsPage() {
           </div>
         </div>
 
-        {/* Monthly Revenue Chart */}
-        <div className="px-8 pb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-xl font-bold text-black">Biểu đồ doanh thu theo tháng</h2>
-                <p className="text-sm text-gray-600 mt-1">Năm {selectedYear}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setSelectedYear(selectedYear - 1)}
-                  className="px-4 py-2 border border-gray-300 rounded font-medium hover:bg-gray-50 transition-colors"
-                >
-                  {selectedYear - 1}
-                </button>
-                <span className="px-4 py-2 bg-blue-600 text-white font-bold rounded">{selectedYear}</span>
-                <button
-                  onClick={() => setSelectedYear(selectedYear + 1)}
-                  disabled={selectedYear >= new Date().getFullYear()}
-                  className="px-4 py-2 border border-gray-300 rounded font-medium hover:bg-gray-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  {selectedYear + 1}
-                </button>
-              </div>
-            </div>
 
-            <div className="relative h-80">
-              {monthlyData.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  Không có dữ liệu cho năm {selectedYear}
-                </div>
-              ) : (
-                <>
-                  <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-xs font-medium text-gray-600 pr-4">
-                    <span>{formatCurrency(maxMonthlyValue)}</span>
-                    <span>{formatCurrency(maxMonthlyValue * 0.75)}</span>
-                    <span>{formatCurrency(maxMonthlyValue * 0.5)}</span>
-                    <span>{formatCurrency(maxMonthlyValue * 0.25)}</span>
-                    <span>0đ</span>
-                  </div>
-
-                  <div className="ml-24 h-full border-l border-b border-gray-300 relative pb-8">
-                    <div className="absolute inset-0 flex flex-col justify-between mb-8">
-                      {[0, 1, 2, 3, 4].map((i) => (
-                        <div key={i} className="border-t border-gray-200" />
-                      ))}
-                    </div>
-
-                    <div className="absolute inset-0 flex items-end justify-around px-2 mb-8">
-                      {Array.from({ length: 12 }, (_, i) => {
-                        const monthData = monthlyData.find((d) => d.month === i + 1)
-                        const value = monthData?.totalRevenue || 0
-                        const height = maxMonthlyValue > 0 ? (value / maxMonthlyValue) * 100 : 0
-                        return (
-                          <div
-                            key={i}
-                            className="flex-1 mx-1 group relative"
-                            style={{ maxWidth: "60px" }}
-                          >
-                            <div
-                              className="bg-blue-600 hover:bg-blue-700 transition-colors cursor-pointer relative rounded-t"
-                              style={{ height: `${height}%` }}
-                            >
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs px-3 py-2 rounded whitespace-nowrap z-10">
-                                <div className="font-bold">Tháng {i + 1}</div>
-                                <div>{formatCurrency(value)}</div>
-                                <div className="text-gray-300">{monthData?.totalOrders || 0} đơn</div>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-around px-2">
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <div key={i} className="flex-1 text-center text-xs font-medium text-gray-600" style={{ maxWidth: "60px" }}>
-                          T{i + 1}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
 
         {/* Daily Revenue Line Chart */}
         <div className="px-8 pb-8">
@@ -235,27 +213,14 @@ export default function StatisticsPage() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-xl font-bold text-black">Biểu đồ đường doanh thu theo ngày</h2>
-                <p className="text-sm text-gray-600 mt-1">Tháng {selectedMonth}/{selectedYear}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                  className="px-4 py-2 border border-gray-300 rounded font-medium hover:bg-gray-50 transition-colors"
-                >
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      Tháng {i + 1}
-                    </option>
-                  ))}
-                </select>
+                <p className="text-sm text-gray-600 mt-1">30 ngày gần nhất</p>
               </div>
             </div>
 
             <div className="relative h-80">
               {dailyData.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-gray-400">
-                  Không có dữ liệu cho tháng {selectedMonth}/{selectedYear}
+                  Không có dữ liệu trong 30 ngày gần đây
                 </div>
               ) : (
                 <>
@@ -286,10 +251,13 @@ export default function StatisticsPage() {
                         }).join(' ')}
                       />
                       {dailyData.map((d, i) => {
+                        if (!d.totalOrders && !d.totalRevenue) {
+                          return null
+                        }
                         const x = ((i + 0.5) / dailyData.length) * 100
                         const y = 100 - (maxDailyValue > 0 ? ((d.totalRevenue || 0) / maxDailyValue) * 100 : 0)
                         return (
-                          <g key={i}>
+                          <g key={d.date}>
                             <circle
                               cx={`${x}%`}
                               cy={`${y}%`}
@@ -297,17 +265,20 @@ export default function StatisticsPage() {
                               fill="#10b981"
                               className="hover:r-6 cursor-pointer"
                             >
-                              <title>{`Ngày ${d.day}: ${formatCurrency(d.totalRevenue || 0)} (${d.totalOrders} đơn)`}</title>
+                              <title>{`Ngày ${d.label}: ${formatCurrency(d.totalRevenue || 0)} (${d.totalOrders} đơn)`}</title>
                             </circle>
                           </g>
                         )
                       })}
                     </svg>
 
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-around">
-                      {dailyData.map((d) => (
-                        <div key={d.day} className="text-center text-xs font-medium text-gray-600">
-                          {d.day}
+                    <div className="absolute bottom-0 left-0 right-0 flex justify-between">
+                      {dailyData.map((d, i) => (
+                        <div
+                          key={d.date}
+                          className={`flex-1 text-center text-xs font-medium text-gray-600 ${i % 5 === 0 ? 'opacity-100' : 'opacity-30'}`}
+                        >
+                          {i % 5 === 0 ? d.label : ''}
                         </div>
                       ))}
                     </div>

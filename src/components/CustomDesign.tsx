@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { ShoppingCartOutlined, RobotOutlined, LoadingOutlined, ReloadOutlined, DownloadOutlined, CloseOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
 import { message } from 'antd'
-import { getAllCharms } from '../api/charmAPI'
+import { getAllCharms, type Charm } from '../api/charmAPI'
+import customDesignAPI from '../api/customDesignAPI'
+import { addOrderDetail } from '../api/orderAPI'
 
 type Accessory = {
   id: number
@@ -17,8 +19,8 @@ type PlacedAccessory = Accessory & {
   height: number
 }
 
-const WEBHOOK_ENDPOINT = 'https://d1jsusb3hh9evo.cloudfront.net/n8n/webhook/nano-banana'
-const AI_PROMPT = 'Make all accessories craft on the necklace style and color scheme. Enhance the overall design to be more cohesive and elegant.'
+const WEBHOOK_ENDPOINT = 'https://d3ucnn9kcaw68r.cloudfront.net/n8n/webhook/nano-banana'
+const AI_PROMPT = 'This image shows a necklace on white background with accessory images (charms) placed on it. The accessories also have white backgrounds. Please Seamlessly blend/integrate the accessories onto the necklace so they look naturally crafted together.'
 
 const base64ToBlob = (base64: string, mimeType = 'image/jpeg') => {
   const sanitized = base64.replace(/^data:image\/[a-zA-Z0-9+]+;base64,/, '').replace(/\s/g, '')
@@ -110,6 +112,9 @@ const CustomDesign = () => {
   const [charms, setCharms] = useState<Accessory[]>([])
   const [templates, setTemplates] = useState<Accessory[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Store full charm data from API (with IDs)
+  const [allCharmsData, setAllCharmsData] = useState<Charm[]>([])
 
   // Pagination state
   const [charmPage, setCharmPage] = useState(1)
@@ -123,6 +128,9 @@ const CustomDesign = () => {
       setLoading(true)
       try {
         const data = await getAllCharms()
+        
+        // Store full charm data (with IDs from backend)
+        setAllCharmsData(data)
         
         // Filter charms (category = 'charm') and templates (category = 'template')
         const charmList = data
@@ -365,6 +373,108 @@ const CustomDesign = () => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  const handlePlaceOrder = async () => {
+    if (!enhancedImageUrl) {
+      message.warning('Vui lòng hoàn thiện thiết kế bằng AI trước khi đặt hàng')
+      return
+    }
+
+    if (placedAccessories.length === 0) {
+      message.warning('Vui lòng thêm ít nhất một phụ kiện vào thiết kế')
+      return
+    }
+
+    try {
+      // Get user data
+      const userStr = localStorage.getItem('hv_user')
+      if (!userStr) {
+        message.error('Vui lòng đăng nhập để đặt hàng')
+        return
+      }
+      
+      const user = JSON.parse(userStr)
+      const userId = user.user_Id || user.userId
+      
+      if (!userId) {
+        message.error('Không tìm thấy thông tin người dùng')
+        return
+      }
+
+      message.loading({ content: 'Đang lưu thiết kế...', key: 'saveDesign', duration: 0 })
+
+      // Get raw image base64 (before AI enhancement)
+      const rawImageBase64 = await captureCanvas()
+      if (!rawImageBase64) {
+        message.error({ content: 'Không thể lưu hình ảnh thiết kế', key: 'saveDesign' })
+        return
+      }
+
+      // Map placed accessories to charm IDs from backend
+      const charmIds: string[] = []
+      for (const placedAcc of placedAccessories) {
+        // Find matching charm by image URL
+        const matchingCharm = allCharmsData.find(c => c.imageUrl === placedAcc.image)
+        if (matchingCharm && matchingCharm.cProduct_Id) {
+          charmIds.push(matchingCharm.cProduct_Id)
+        }
+      }
+
+      // Add template ID if selected template exists
+      const selectedTemplateCharm = allCharmsData.find(c => c.imageUrl === selectedTemplate)
+      if (selectedTemplateCharm && selectedTemplateCharm.cProduct_Id) {
+        charmIds.push(selectedTemplateCharm.cProduct_Id)
+      }
+
+      if (charmIds.length === 0) {
+        message.error({ content: 'Không tìm thấy thông tin charm trong thiết kế', key: 'saveDesign' })
+        return
+      }
+
+      // Create custom design
+      const customDesignData = {
+        user_Id: userId,
+        name: `Thiết kế tùy chỉnh ${new Date().toLocaleDateString('vi-VN')}`,
+        description: `Thiết kế với ${placedAccessories.length} phụ kiện`,
+        rawImageBase64: rawImageBase64,
+        aiImageUrl: enhancedImageUrl,
+        charmIds: charmIds
+      }
+
+      console.log('Creating custom design:', customDesignData)
+      const createdDesign = await customDesignAPI.createCustomDesign(customDesignData)
+      console.log('Custom design created:', createdDesign)
+
+      message.success({ content: 'Lưu thiết kế thành công!', key: 'saveDesign' })
+      message.loading({ content: 'Đang thêm vào giỏ hàng...', key: 'addToCart', duration: 0 })
+
+      // Add to cart (create order detail)
+      const orderDetailData = {
+        customDesign_Id: createdDesign.customDesign_Id,
+        quantity: 1,
+        unitPrice: createdDesign.price,
+        discount: 0
+      }
+
+      console.log('Adding to cart:', orderDetailData)
+      await addOrderDetail(orderDetailData)
+
+      message.success({ content: 'Đã thêm vào giỏ hàng!', key: 'addToCart' })
+      
+      // Reset design after successful order
+      setTimeout(() => {
+        resetDesign()
+        message.info('Bạn có thể tạo thiết kế mới hoặc xem giỏ hàng để thanh toán')
+      }, 1500)
+
+    } catch (err: any) {
+      console.error('Place order error:', err)
+      message.destroy()
+      
+      const errorMsg = err?.response?.data?.message || err?.message || 'Không thể đặt hàng. Vui lòng thử lại.'
+      message.error(errorMsg)
+    }
   }
 
   return (
@@ -1348,7 +1458,9 @@ const CustomDesign = () => {
                 )}
 
                 {/* Cart Button always visible */}
-                <button style={{
+                <button 
+                  onClick={handlePlaceOrder}
+                  style={{
                   backgroundColor: '#ffffff',
                   color: '#000000',
                   padding: '1rem 2.5rem',
