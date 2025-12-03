@@ -23,7 +23,7 @@ type CustomDesignProps = {
   onCartUpdated?: () => Promise<void> | void
 }
 
-const WEBHOOK_ENDPOINT = 'https://dofbwu7rqobb6.cloudfront.net/n8n/webhook/nano-banana'
+const WEBHOOK_ENDPOINT = 'https://d12vbmhzduo1ra.cloudfront.net/n8n/webhook/nano-banana'
 const AI_PROMPT = 'This image shows a necklace on white background with accessory images (charms) placed on it. The accessories also have white backgrounds. Please Seamlessly blend/integrate the accessories onto the necklace so they look naturally crafted together.'
 
 const base64ToBlob = (base64: string, mimeType = 'image/jpeg') => {
