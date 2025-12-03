@@ -1,14 +1,12 @@
 import { api } from './axios';
 
-export type VNPayCreateRequest = {
+export type PayOSCreateRequest = {
   orderId: string;
-  bankCode?: string;
-  voucherCode?: string;
 };
 
-export type VNPayCreateResponse = {
-  paymentUrl: string;
-  voucherApplied?: boolean;
+export type PayOSCreateResponse = {
+  checkoutUrl: string;
+  orderCode: number;
 };
 
 function getToken(): string {
@@ -22,10 +20,10 @@ function getToken(): string {
   }
 }
 
-/** Create VNPay payment URL */
-export async function createVNPayPayment(body: VNPayCreateRequest) {
+/** Create PayOS payment URL */
+export async function createPayOSPayment(body: PayOSCreateRequest) {
   const token = getToken();
-  const res = await api.post<VNPayCreateResponse>('/Payments/vnpay-create', body, {
+  const res = await api.post<PayOSCreateResponse>('/PayOS/create-payment-link', body, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;

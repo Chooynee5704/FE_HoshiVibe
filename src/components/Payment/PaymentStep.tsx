@@ -3,42 +3,40 @@
 import { Button, Card, Typography, Modal } from "antd"
 import { CreditCard } from "lucide-react"
 import { useState } from "react"
-import { createVNPayPayment } from "../../api/paymentAPI"
+import { createPayOSPayment } from "../../api/paymentAPI"
 import { updateOrder } from "../../api/orderAPI"
 import { getCurrentUser } from "../../api/authApi"
 const { Title, Text } = Typography
 
-export type PaymentMethod = "vnpay"
+export type PaymentMethod = "payos"
 
 export default function PaymentStep({
   amount,
   receiver,
   orderId,
-  voucherCode,
   onBack,
   onNavigateOrders,
   onNavigateProducts,
 }: {
   amount: number
   pay: PaymentMethod
-  receiver: { name:string; phone:string; address:string }
+  receiver: { name: string; phone: string; address: string }
   orderId: string
-  voucherCode?: string
   onBack: () => void
   onNavigateOrders: () => void
   onNavigateProducts: () => void
 }) {
   const [isProcessing, setIsProcessing] = useState(false)
-  const formatVND = (n:number) => n.toLocaleString("vi-VN") + " VNĐ"
+  const formatVND = (n: number) => n.toLocaleString("vi-VN") + " VNĐ"
 
-  const handleVNPayPayment = async () => {
+  const handlePayOSPayment = async () => {
     try {
       setIsProcessing(true)
       console.log('Updating order before payment:', orderId)
-      
+
       // Get current user
       const user = getCurrentUser()
-      
+
       if (!user || !user.user_Id) {
         Modal.error({
           title: 'Lỗi xác thực',
@@ -50,7 +48,7 @@ export default function PaymentStep({
 
       // Parse phone number (remove spaces and convert to number)
       const phoneNumber = parseInt(receiver.phone.replace(/\s/g, ''))
-      
+
       // Update order with shipping info and final price
       await updateOrder(orderId, {
         user_Id: user.user_Id,
@@ -61,25 +59,23 @@ export default function PaymentStep({
         phoneNumber: phoneNumber,
         status: 'Pending',
       })
-      
+
       console.log('Order updated successfully')
-      console.log('Creating VNPay payment for order:', orderId, 'with voucher:', voucherCode)
-      
-      const response = await createVNPayPayment({
+      console.log('Creating PayOS payment for order:', orderId)
+
+      const response = await createPayOSPayment({
         orderId: orderId,
-        bankCode: '', // Empty for default VNPay gateway
-        voucherCode: voucherCode, // Include voucher code if provided
       })
-      
-      console.log('VNPay payment URL:', response.paymentUrl)
-      
-      // Redirect to VNPay payment page
-      window.location.href = response.paymentUrl
+
+      console.log('PayOS checkout URL:', response.checkoutUrl)
+
+      // Redirect to PayOS payment page
+      window.location.href = response.checkoutUrl
     } catch (error) {
-      console.error('Error creating VNPay payment:', error)
+      console.error('Error creating PayOS payment:', error)
       Modal.error({
         title: 'Lỗi thanh toán',
-        content: 'Không thể tạo thanh toán VNPay. Vui lòng thử lại.',
+        content: 'Không thể tạo thanh toán PayOS. Vui lòng thử lại.',
       })
       setIsProcessing(false)
     }
@@ -90,22 +86,22 @@ export default function PaymentStep({
       style={{
         width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
         color: "#fff", fontWeight: 800,
-        background: "#0066cc",
+        background: "#00C853",
       }}
     >
-      VN
+      PO
     </div>
   )
 
   return (
     <div style={{ maxWidth: 880, margin: "0 auto" }}>
       <Button onClick={onBack} style={{ marginBottom: 16 }}>Quay lại</Button>
-      <Title level={2} style={{ marginBottom: 16 }}>Thanh toán VNPay</Title>
+      <Title level={2} style={{ marginBottom: 16 }}>Thanh toán PayOS</Title>
 
       <Card style={{ borderRadius: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
           {getPaymentBadge()}
-          <Title level={4} style={{ margin: 0 }}>VNPay</Title>
+          <Title level={4} style={{ margin: 0 }}>PayOS</Title>
         </div>
 
         <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -124,15 +120,15 @@ export default function PaymentStep({
           </div>
         </Card>
 
-        <Button 
-          type="primary" 
+        <Button
+          type="primary"
           size="large"
-          block 
-          onClick={handleVNPayPayment}
+          block
+          onClick={handlePayOSPayment}
           loading={isProcessing}
-          style={{ background: "#0066cc", height: 48, fontWeight: 800 }}
+          style={{ background: "#00C853", height: 48, fontWeight: 800 }}
         >
-          {isProcessing ? 'Đang chuyển hướng...' : 'Tiếp tục thanh toán VNPay'}
+          {isProcessing ? 'Đang chuyển hướng...' : 'Tiếp tục thanh toán PayOS'}
         </Button>
 
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>

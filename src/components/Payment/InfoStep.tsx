@@ -5,11 +5,11 @@ import { Button, Card, Divider, Form, Input, Typography, message, Tag } from "an
 import { validateVoucher, type Voucher } from "../../api/voucherAPI"
 const { Title, Text } = Typography
 
-export type PaymentMethod = "vnpay"
+export type PaymentMethod = "payos"
 
-type CartItem = { id:string; name:string; price:number; image:string; quantity:number }
+type CartItem = { id: string; name: string; price: number; image: string; quantity: number }
 
-/** Payment options with VNPay only */
+/** Payment options with PayOS only */
 function PaymentOptionsTailwind({
   payment,
   onChange,
@@ -18,7 +18,7 @@ function PaymentOptionsTailwind({
   onChange: (m: PaymentMethod) => void
 }) {
   const opts: { key: PaymentMethod; label: string; icon: string; color: string }[] = [
-    { key: "vnpay",  label: "VNPay",  icon: "VN", color: "bg-blue-600" },
+    { key: "payos", label: "PayOS", icon: "PO", color: "bg-green-600" },
   ]
 
   return (
@@ -58,7 +58,7 @@ function PaymentOptionsTailwind({
 
 export default function InfoStep({
   items,
-  defaultPay = "vnpay",
+  defaultPay = "payos",
   onNext,
   onBackToCart,
 }: {
@@ -66,13 +66,13 @@ export default function InfoStep({
   defaultPay?: PaymentMethod
   overrideTotal?: number
   onNext: (args: {
-    values: { name:string; phone:string; address:string; note?:string }
+    values: { name: string; phone: string; address: string; note?: string }
     pay: PaymentMethod
     voucherCode?: string
   }) => void
   onBackToCart: () => void
 }) {
-  const [form] = Form.useForm<{name:string; phone:string; address:string; note?:string}>()
+  const [form] = Form.useForm<{ name: string; phone: string; address: string; note?: string }>()
   const [pay, setPay] = useState<PaymentMethod>(defaultPay)
   const [voucherCode, setVoucherCode] = useState<string>("")
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null)
@@ -81,12 +81,12 @@ export default function InfoStep({
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const shipping = subtotal > 0 && subtotal < 300000 ? 30000 : 0
   const totalBeforeVoucher = subtotal + shipping
-  
+
   // Calculate discount if voucher is applied
   const discountAmount = appliedVoucher ? totalBeforeVoucher * appliedVoucher.discountAmount : 0
   const grandTotal = totalBeforeVoucher - discountAmount
-  
-  const formatVND = (n:number) => n.toLocaleString("vi-VN") + " VNĐ"
+
+  const formatVND = (n: number) => n.toLocaleString("vi-VN") + " VNĐ"
 
   const handleApplyVoucher = async () => {
     if (!voucherCode.trim()) {
@@ -97,7 +97,7 @@ export default function InfoStep({
     setIsValidatingVoucher(true)
     try {
       const result = await validateVoucher(voucherCode.trim())
-      
+
       if (result.isValid && result.voucher) {
         setAppliedVoucher(result.voucher)
         message.success(`Áp dụng mã giảm giá thành công! Giảm ${(result.voucher.discountAmount * 100).toFixed(0)}%`)
@@ -121,8 +121,8 @@ export default function InfoStep({
 
   const submit = async () => {
     const values = await form.validateFields()
-    onNext({ 
-      values, 
+    onNext({
+      values,
       pay,
       voucherCode: appliedVoucher?.code
     })
@@ -236,8 +236,8 @@ export default function InfoStep({
                   onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
                   onPressEnter={handleApplyVoucher}
                 />
-                <Button 
-                  onClick={handleApplyVoucher} 
+                <Button
+                  onClick={handleApplyVoucher}
                   loading={isValidatingVoucher}
                   type="default"
                 >

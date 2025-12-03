@@ -6,7 +6,7 @@ import InfoStep from "./InfoStep"
 import type { PaymentMethod } from "./InfoStep"
 import PaymentStep from "./PaymentStep"
 
-type CartItem = { id:string; name:string; price:number; image:string; quantity:number }
+type CartItem = { id: string; name: string; price: number; image: string; quantity: number }
 
 type Props = {
   onNavigate?: (p: PageKey) => void
@@ -19,14 +19,13 @@ type Props = {
 export default function CheckoutPage({
   onNavigate,
   items,
-  paymentMethod = "vnpay",
+  paymentMethod = "payos",
   total,
   orderId,
 }: Props) {
   const [step, setStep] = React.useState<"info" | "payment">("info")
   const [pay, setPay] = React.useState<PaymentMethod>(paymentMethod)
-  const [receiver, setReceiver] = React.useState<{name:string; phone:string; address:string; note?:string} | null>(null)
-  const [voucherCode, setVoucherCode] = React.useState<string | undefined>(undefined)
+  const [receiver, setReceiver] = React.useState<{ name: string; phone: string; address: string; note?: string } | null>(null)
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const shipping = subtotal > 0 && subtotal < 300000 ? 30000 : 0
@@ -40,10 +39,9 @@ export default function CheckoutPage({
           defaultPay={pay}
           overrideTotal={total}
           onBackToCart={() => onNavigate?.("cart")}
-          onNext={({ values, pay: chosen, voucherCode: voucher }) => {
+          onNext={({ values, pay: chosen }) => {
             setReceiver(values)
             setPay(chosen)
-            setVoucherCode(voucher)
             setStep("payment")
           }}
         />
@@ -57,7 +55,6 @@ export default function CheckoutPage({
             address: receiver?.address ?? "",
           }}
           orderId={orderId}
-          voucherCode={voucherCode}
           onBack={() => setStep("info")}
           onNavigateOrders={() => onNavigate?.("orders" as PageKey)}
           onNavigateProducts={() => onNavigate?.("products")}
