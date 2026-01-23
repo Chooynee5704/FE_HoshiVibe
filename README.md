@@ -18,9 +18,9 @@ Live demo: https://fe-hoshi-vibe.vercel.app/
 - Axios
 
 ## Screenshots
-![Home](image/home.png)
-![Overview](image/gioithieu.png)
-![Dashboard](image/sanpham.png)
+![Home](src/image/home.png)
+![Overview](src/image/gioithieu.png)
+![Dashboard](src/image/sanpham.png)
 
 ## Quick Start
 ```bash
