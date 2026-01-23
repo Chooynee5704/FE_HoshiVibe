@@ -19,8 +19,8 @@ Live demo: https://fe-hoshi-vibe.vercel.app/
 
 ## Screenshots
 ![Home](image/home.png)
-![Custom Design](image/custom-design.png)
-![Admin Dashboard](image/admin-dashboard.png)
+![Overview](gioithieu.png)
+![Dashboard](sanpham.png)
 
 ## Quick Start
 ```bash
